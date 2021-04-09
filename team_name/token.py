@@ -13,7 +13,6 @@ class Token():
 
     # move token and print move to console
     def move(self, coord):
-        distance = self.calc_distance(self.coord, coord)
         self.coord = coord
         if self.target:
             if self.coord == self.target.coord:
