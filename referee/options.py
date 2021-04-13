@@ -14,18 +14,18 @@ player package/class specifications (positional args):
   The first 2 arguments are 'package specifications'. These specify which
   Python package/module to import and search for a class named 'Player' (to
   instantiate for each player in the game). When we test your programs this
-  will just be your top-level package (i.e. 'your_CedSam').
+  will just be your top-level package (i.e. 'your_team_name').
 
   If you want to play games with another player class from another package
   (e.g. while you develop your player), you can use any absolute module name
-  (as used with import statements, e.g. 'your_CedSam.player2') or relative
+  (as used with import statements, e.g. 'your_team_name.player2') or relative
   path (to a file or directory containing the Python module, e.g. 'your_team_
-  name/player3' or 'your_CedSam/players/player4.py').
+  name/player3' or 'your_team_name/players/player4.py').
 
   Either way, the referee will attempt to import the specified package/module
   and then load a class named 'Player'. If you want the referee to look for a
   class with some other name you can put the alternative class name after a
-  colon symbol ':' (e.g. 'your_CedSam:DifferentPlayer').
+  colon symbol ':' (e.g. 'your_team_name:DifferentPlayer').
 
   upper                 location of Upper's Player class (e.g. package name)
   lower                 location of Lower's Player class (e.g. package name)
@@ -103,18 +103,18 @@ PKG_SPEC_HELP = """
 The first {} arguments are 'package specifications'. These specify which
 Python package/module to import and search for a class named 'Player' (to
 instantiate for each player in the game). When we test your programs this
-will just be your top-level package (i.e. 'your_CedSam').
+will just be your top-level package (i.e. 'your_team_name').
 
 If you want to play games with another player class from another package
 (e.g. while you develop your player), you can use any absolute module name
-(as used with import statements, e.g. 'your_CedSam.player2') or relative
+(as used with import statements, e.g. 'your_team_name.player2') or relative
 path (to a file or directory containing the Python module, e.g. 'your_team_
-name/player3' or 'your_CedSam/players/player4.py').
+name/player3' or 'your_team_name/players/player4.py').
 
 Either way, the referee will attempt to import the specified package/module
 and then load a class named 'Player'. If you want the referee to look for a
 class with some other name you can put the alternative class name after a
-colon symbol ':' (e.g. 'your_CedSam:DifferentPlayer').
+colon symbol ':' (e.g. 'your_team_name:DifferentPlayer').
 """.format(
     NUM_PLAYERS
 )
