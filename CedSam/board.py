@@ -1,24 +1,28 @@
-from class import Upper, Lower
+from CedSam.side import Lower, Upper
 
 class Board():
 
-    # generate token classes of players 
-    # with their coordinates and block tokens
-    def __init__(self, token_data):
-        self.upper = Upper(token_data['upper'])
-        self.lower = Lower(token_data['lower'])
-        self.turn = 0
-        
     # default size of board
     size = range(-4, +4+1)
+    
+    # check if a coordinate is within board boundaries
+    @staticmethod
+    def check_bounds(x, y):
+        return x in Board.size and y in Board.size and ((-x) - y) in Board.size
 
+    # generate token classes of players 
+    # with their coordinates and block tokens
+    def __init__(self):
+        self.upper = Upper()
+        self.lower = Lower()
+        self.turn = 0
+        
     # create dict of tokens on occupied hex tiles
     # from tokens of player classes
     def create_dict(self):
         output_dict = dict()
         for token in self.upper.token_list + \
-                    self.lower.token_list + \
-                    self.block.token_list:
+                    self.lower.token_list:
             if token.coord not in output_dict:
                 output_dict[token.coord] = [token]
             else:
@@ -27,10 +31,6 @@ class Board():
 
     def next_turn(self):
         self.turn += 1
-
-    # check if a coordinate is within board boundaries
-    def check_bounds(x, y):
-        return x in Board.size and y in Board.size and ((-x) - y) in Board.size
 
     # set up fighting mechanic, 
     # where it takes a dict of all tokens on all coords, 

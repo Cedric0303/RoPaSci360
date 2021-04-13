@@ -1,6 +1,9 @@
+from CedSam.board import Board
+from CedSam.side import Lower, Upper
+from CedSam.token import Rock, Paper, Scissors
 
 class Player:
-    def __init__(self, player):
+    def __init__(self, side):
         """
         Called once at the beginning of a game to initialise this player.
         Set up an internal representation of the game state.
@@ -9,7 +12,11 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        # put your code here
+        self.board = Board()
+        self.side = Upper if 'u' in side else Lower
+        print(self.side)
+        self.throws = {Rock: 3, Paper: 3, Scissors: 3}
+        exit() # exit for now, not done implementation
 
     def action(self):
         """
@@ -27,4 +34,3 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         # put your code here
-
