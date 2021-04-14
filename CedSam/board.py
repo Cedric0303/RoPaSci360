@@ -1,10 +1,11 @@
+from CedSam.token import Paper, Rock, Scissors
 from CedSam.side import Lower, Upper
 
 class Board():
 
     # default size of board
     size = range(-4, +4+1)
-    
+
     # check if a coordinate is within board boundaries
     @staticmethod
     def check_bounds(x, y):
@@ -12,25 +13,19 @@ class Board():
 
     # generate token classes of players 
     # with their coordinates and block tokens
-    def __init__(self):
-        self.upper = Upper()
-        self.lower = Lower()
-        self.turn = 0
-        
+    def __init__(self, side):
+        self.side = side
+
     # create dict of tokens on occupied hex tiles
     # from tokens of player classes
     def create_dict(self):
         output_dict = dict()
-        for token in self.upper.token_list + \
-                    self.lower.token_list:
+        for token in self.self_tokens + self.opponent_tokens:
             if token.coord not in output_dict:
                 output_dict[token.coord] = [token]
             else:
                 output_dict[token.coord].append(token)
         return output_dict
-
-    def next_turn(self):
-        self.turn += 1
 
     # set up fighting mechanic, 
     # where it takes a dict of all tokens on all coords, 
@@ -39,38 +34,30 @@ class Board():
     def battle(self, coord_dict):
         
         alive_tokens = dict()
-
-        self.upper.clear_token_list()
-        self.lower.clear_token_list()
+        # self.self_tokens.clear()
+        # self.opponent_tokens.clear()
 
         # decide what token dies
         for coord, tokens in coord_dict.items():
 
-            # paper_die = False
-            # scissor_die = False
-            # rock_die = False
-
             if len(tokens) > 1:
-
                 paper_die = False
                 scissor_die = False
                 rock_die = False
 
                 for token in tokens:
-                    ttype = token.name.lower()
-                    if ttype == 'p':
+                    if isinstance(token, Paper):
                         rock_die = True
-                    elif ttype == 'r':
+                    elif isinstance(token, Rock):
                         scissor_die = True
-                    elif ttype == 's':
+                    elif isinstance(token, Scissors):
                         paper_die = True
 
                 # create list of surviving tokens
                 for token in tokens:
-                    ttype = token.name.lower()
-                    if (ttype == 'p' and paper_die == False) or \
-                        (ttype == 'r' and rock_die == False) or \
-                        (ttype == 's' and scissor_die == False):
+                    if (isinstance(token, Paper) and paper_die == False) or \
+                        (isinstance(token, Rock) and rock_die == False) or \
+                        (isinstance(token, Scissors) and scissor_die == False):
                         if coord not in alive_tokens:
                             alive_tokens[coord] = [token]
                         else:
@@ -83,10 +70,4 @@ class Board():
                 else:
                     alive_tokens[coord].append(token)
         # re-insert surviving tokens into player classes
-        for (x, y), tokens in alive_tokens.items():
-            for token in tokens:
-                if token.name.isupper():
-                    self.upper = Upper([[token.name.upper(), x ,y]])
-                elif token.name.islower():
-                    self.lower = Lower([[token.name, x ,y]])
-        return alive_tokens
+        # for (x, y), tokens in alive_tokens.items():

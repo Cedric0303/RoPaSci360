@@ -16,15 +16,11 @@ class Side():
         return best_target
 
 class Upper(Side):
-
     def __init__(self):
-        self.token_list = list()
         pass
 
 class Lower(Side):
-
     def __init__(self):
-        self.token_list = list()
         pass
 
 

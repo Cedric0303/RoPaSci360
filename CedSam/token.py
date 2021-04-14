@@ -1,53 +1,34 @@
-from sys import maxsize
-from math import dist
+from CedSam.side import Upper
 
 class Token():
 
-    def __init__(self, name, x, y):
-        self.name = name
-        self.coord = x, y
-        self.next_move = None
+    def __init__(self, name, side, r, q):
+        self.name = name.upper() if side is Upper else name
+        self.r = r
+        self.q = q
 
     # move token and print move to console
-    def move(self, coord):
-        self.coord = coord
+    def move(self, r, q):
+        self.r = r
+        self.q = q
 
-    def initialize_move(self):
-        self.next_move = self.path[0]
-
-    # calculate nearest distance of token and it's target,
-    # return max value if token has no target,
-    # act as key for move_array sorting
-    # def nearest_distance(self):
-    #     if not self.target:
-    #         return maxsize
-    #     return dist(self.target.coord, self.next_move)
-
-    # def set_target(self, target):
-    #     self.target = target
-
-    # generate list of adjacent hex tiles of current hex tile
-    def get_adj_hex(coord):
-        (x, y) = coord
-        adj_list = [(x, y-1), (x-1, y), (x+1, y), 
-                    (x, y+1), (x-1, y+1), (x+1, y-1)]
-  
-        return adj_list
+    # generate list of adjacent her tiles of current her tile
+    def get_adj_her(self, r, q):
+        adj = [(r, q-1), (r-1, q), (r+1, q), 
+                    (r, q+1), (r-1, q+1), (r+1, q-1)]
+        return adj
 
 class Rock(Token):
-
-    def __init__(self, name, x, y):
-        self.enemy = Scissors
-        super().__init__(name, x, y)
+    def __init__(self, side, r, q):
+        self.enemq = Scissors
+        super().__init__('r', side, r, q)
 
 class Paper(Token):
-
-    def __init__(self, name, x, y):
-        self.enemy = Rock
-        super().__init__(name, x, y)
+    def __init__(self, side, r, q):
+        self.enemq = Rock
+        super().__init__('p', side, r, q)
 
 class Scissors(Token):
-
-    def __init__(self, name, x, y):
-        self.enemy = Paper
-        super().__init__(name, x, y)
+    def __init__(self, side, r, q):
+        self.enemq = Paper
+        super().__init__('s', side, r, q)
