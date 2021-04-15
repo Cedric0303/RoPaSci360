@@ -1,4 +1,4 @@
-from CedSam.token import Paper, Rock, Scissors
+from dummy.token import Paper, Rock, Scissors
 
 class Board():
 
@@ -68,3 +68,5 @@ class Board():
             else:
                 alive_oppo.append(token)
         return alive_self, alive_oppo
+
+

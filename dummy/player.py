@@ -1,7 +1,7 @@
 from random import choice, randrange
-from CedSam.board import Board
-from CedSam.side import Lower, Upper
-from CedSam.token import Rock, Paper, Scissors
+from dummy.board import Board
+from dummy.side import Lower, Upper
+from dummy.token import Rock, Paper, Scissors
 
 class Player:
     def __init__(self, side):
