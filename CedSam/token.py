@@ -14,9 +14,8 @@ class Token():
 
     # generate list of adjacent her tiles of current her tile
     def get_adj_her(self, r, q):
-        adj = [(r, q-1), (r-1, q), (r+1, q), 
-                    (r, q+1), (r-1, q+1), (r+1, q-1)]
-        return adj
+        return [(r, q-1), (r-1, q), (r+1, q), 
+                (r, q+1), (r-1, q+1), (r+1, q-1)]
 
 class Rock(Token):
     def __init__(self, side, r, q):

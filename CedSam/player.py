@@ -36,7 +36,6 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        # put your code here
         if self.throws and (not self.turn or not self.self_tokens):
             # throw
             token = self.throws.pop(self.throws.index(choice(self.throws)))
@@ -62,7 +61,6 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        # put your code here
         self.turn += 1
         if 'T' in player_action[0]:
             # self throw

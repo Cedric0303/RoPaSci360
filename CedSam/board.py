@@ -1,5 +1,4 @@
 from CedSam.token import Paper, Rock, Scissors
-from CedSam.side import Lower, Upper
 
 class Board():
 
