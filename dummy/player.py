@@ -50,7 +50,7 @@ class Player:
         else:
             # slide
             token = choice(self.self_tokens) if len(self.self_tokens) > 1 else self.self_tokens[0]
-            action = choice([(r, q) for (r, q) in token.get_adj_her(token.r, token.q) if Board.check_bounds(r, q)])
+            action = choice([(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)])
             return ("SLIDE", (token.r, token.q), action)
         # swing : WIP
 

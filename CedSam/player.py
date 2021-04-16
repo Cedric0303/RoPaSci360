@@ -50,10 +50,9 @@ class Player:
         else:
             # slide
             token = choice(self.self_tokens) if len(self.self_tokens) > 1 else self.self_tokens[0]
-            action = choice([(r, q) for (r, q) in token.get_adj_her(token.r, token.q) if Board.check_bounds(r, q)])
+            action = choice([(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)])
             return ("SLIDE", (token.r, token.q), action)
         # swing : WIP
-
     
     def update(self, opponent_action, player_action):
         """
@@ -115,8 +114,8 @@ class Player:
     
         difference = len(self_tokens) - len(opponent_tokens)
     
-        if difference < 0 return 0
-        else return difference
+        if difference < 0: return 0
+        else: return difference
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
@@ -142,21 +141,21 @@ class Player:
     def build_utility(self, token_considered, target_token, enemy_token, self_tokens, opponent_tokens):
         
         util_matrix = {}
-        possible = token_considered.get_adj_her()
+        possible = token_considered.get_adj_hex()
 
         # enumerate all possible moves for our token
         for move_x, move_y in possible:
             
             shallow_self = self_tokens.copy()
-            if check_bounds(move_x, move_y):
+            if Board.check_bounds(move_x, move_y):
                 self.adjust_list(token_considered, shallow_self, move_x, move_y)
 
-                target_moves = target_token.get_adj_her()
-                enemy_moves = enemy_token.get_adj_her()
+                target_moves = target_token.get_adj_hex()
+                enemy_moves = enemy_token.get_adj_hex()
 
                 for opp_x, opp_y in target_moves:
                     shallow_opp = opponent_tokens.copy()
-                    if check_bounds(opp_x, opp_y):
+                    if Board.check_bounds(opp_x, opp_y):
                         self.adjust_list(target_token, shallow_opp, opp_x, opp_y)
 
                         # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
@@ -169,7 +168,7 @@ class Player:
 
                 for opp_x, opp_y in enemy_moves:
                     shallow_opp = opponent_tokens.copy()
-                    if check_bounds(opp_x, opp_y):
+                    if Board.check_bounds(opp_x, opp_y):
                         self.adjust_list(enemy_token, shallow_opp, opp_x, opp_y)
 
                         # any way to modularise?
@@ -183,21 +182,21 @@ class Player:
         return util_matrix
                 
 
-"""Carries out simultaneous move alpha beta pruning, once for each token
+    """Carries out simultaneous move alpha beta pruning, once for each token
 
-state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
-alpha: lower bound
-beta: upper bound
-depth: terminal limit
-token_considered: A single token of our player's side, whose moves are being evaluated
-seen: A dictionary of board configs to maintain what has been seen, and at what depth level
-"""
-def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen){
+    state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
+    alpha: lower bound
+    beta: upper bound
+    depth: terminal limit
+    token_considered: A single token of our player's side, whose moves are being evaluated
+    seen: A dictionary of board configs to maintain what has been seen, and at what depth level
+    """
+    def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen):
 
-    # terminal state if it has reached depth limit, then just evaluate
-    if seen[state] == 1:
-        v = self.simple_eval(self_tokens, opponent_tokens)
-        return v
-    
+        # terminal state if it has reached depth limit, then just evaluate
+        if seen[state] == 1:
+            v = self.simple_eval(self_tokens, opponent_tokens)
+            return v
+        
 
 

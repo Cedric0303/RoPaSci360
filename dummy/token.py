@@ -13,7 +13,7 @@ class Token():
         self.q = q
 
     # generate list of adjacent her tiles of current her tile
-    def get_adj_her(self, r, q):
+    def get_adj_hex(self, r, q):
         return [(r, q-1), (r-1, q), (r+1, q), 
                 (r, q+1), (r-1, q+1), (r+1, q-1)]
 
