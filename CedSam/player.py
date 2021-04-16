@@ -109,3 +109,95 @@ class Player:
         self.self_tokens, self.opponent_tokens = \
             self.board.battle(self.self_tokens, self.opponent_tokens)
         self.turn += 1
+
+    # Returns simple evaluation of player tokens minus opponent tokens
+    def simple_eval(self, self_tokens, opponent_tokens):
+    
+        difference = len(self_tokens) - len(opponent_tokens)
+    
+        if difference < 0 return 0
+        else return difference
+
+    # Adjusts a list of tokens to provide updated list
+    def adjust_list(self, token, token_list, new_r, new_q):
+
+        token_list.remove(token)
+        if token.name.upper() == 'R':
+            token_list.append(Rock(token.side, new_r, new_q))
+        elif token.name.upper() == 'P':
+            token_list.append(Paper(token.side, new_r, new_q))
+        elif token.name.upper() == 'S':
+            token_list.append(Scissors(token.side, new_r, new_q))
+
+        return token_list
+
+    """
+    Builds a 2-d utility matrix. Dict keys are the possible moves.
+    token_considered: our token, which we're calculating utility for
+    target_token: enemy token which we're trying to kill
+    enemy_token: enemy token to avoid
+
+    e.g. {(2,3):[1,2,4,5], (2,4):[2,4,8,6]}
+    """
+    def build_utility(self, token_considered, target_token, enemy_token, self_tokens, opponent_tokens):
+        
+        util_matrix = {}
+        possible = token_considered.get_adj_her()
+
+        # enumerate all possible moves for our token
+        for move_x, move_y in possible:
+            
+            shallow_self = self_tokens.copy()
+            if check_bounds(move_x, move_y):
+                self.adjust_list(token_considered, shallow_self, move_x, move_y)
+
+                target_moves = target_token.get_adj_her()
+                enemy_moves = enemy_token.get_adj_her()
+
+                for opp_x, opp_y in target_moves:
+                    shallow_opp = opponent_tokens.copy()
+                    if check_bounds(opp_x, opp_y):
+                        self.adjust_list(target_token, shallow_opp, opp_x, opp_y)
+
+                        # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
+                        alive_self, alive_opp = Board.battle(shallow_self, shallow_opp)
+
+                        if (move_x, move_y) not in util_matrix:
+                            util_matrix[(move_x, move_y)] = [self.simple_eval(alive_self, alive_opp)]
+                        else:
+                            util_matrix[(move_x, move_y)].append(self.simple_eval(alive_self, alive_opp))
+
+                for opp_x, opp_y in enemy_moves:
+                    shallow_opp = opponent_tokens.copy()
+                    if check_bounds(opp_x, opp_y):
+                        self.adjust_list(enemy_token, shallow_opp, opp_x, opp_y)
+
+                        # any way to modularise?
+                        alive_self, alive_opp = Board.battle(shallow_self, shallow_opp)
+
+                        if (move_x, move_y) not in util_matrix:
+                            util_matrix[(move_x, move_y)] = [self.simple_eval(alive_self, alive_opp)]
+                        else:
+                            util_matrix[(move_x, move_y)].append(self.simple_eval(alive_self, alive_opp))
+
+        return util_matrix
+                
+
+"""Carries out simultaneous move alpha beta pruning, once for each token
+
+state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
+alpha: lower bound
+beta: upper bound
+depth: terminal limit
+token_considered: A single token of our player's side, whose moves are being evaluated
+seen: A dictionary of board configs to maintain what has been seen, and at what depth level
+"""
+def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen){
+
+    # terminal state if it has reached depth limit, then just evaluate
+    if seen[state] == 1:
+        v = self.simple_eval(self_tokens, opponent_tokens)
+        return v
+    
+
+
