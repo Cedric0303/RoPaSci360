@@ -186,30 +186,30 @@ class Player:
         return difference
 
     def target_eval(self, token_considered, opponent_tokens):
-        w = 0.5
+        w = 1
         targets = [token for token in opponent_tokens if isinstance(token, token_considered.enemy)]
         distance = min([dist([token_considered.r, token_considered.q], [target.r, target.q]) for target in targets])
 
-        return w * distance
+        return round(w * distance)
 
     def ally_eval(self, token_considered, r, q, self_tokens):
-        w = -10.0
+        w = -5
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, token_considered.enemy) or isinstance(token, token_considered.avoid)]
         return w if (r, q) in team_kill else 0
 
     
     def avoid_eval(self, token_considered, opponent_tokens):
-        w = 0.3
+        w = -2
         enemies = [token for token in opponent_tokens if isinstance(token, token_considered.avoid)]
         distance = min([dist([token_considered.r, token_considered.q], [target.r, target.q]) for target in enemies])
 
-        return w * distance
+        return round(w * distance)
 
     def swing_eval(self, token_considered, r, q, self_tokens):
-        w = 2.0
+        w = 2
         adj = set(token_considered.get_adj_hex(r, q))
         allies = set([(token.r, token.q) for token in self_tokens])
-        return w if bool(adj.intersection(allies)) else 0
+        return w if adj.intersection(allies) else 0
         
     # """Carries out simultaneous move alpha beta pruning, once for each token
 
