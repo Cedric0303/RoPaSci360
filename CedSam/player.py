@@ -157,7 +157,7 @@ class Player:
                         if (move_r, move_q) not in util_matrix:
                             util_matrix[(move_r, move_q)] = [self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp)]
                         else:
-                            util_matrix[(move_r, move_q)].append(self.simple_eval(alive_self, alive_opp))
+                            util_matrix[(move_r, move_q)].append(self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp))
 
                 for opp_r, opp_q in enemy_moves:
                     shallow_opp = opponent_tokens.copy()
@@ -168,9 +168,9 @@ class Player:
                         alive_self, alive_opp = Board.battle(shallow_self, shallow_opp)
 
                         if (move_r, move_q) not in util_matrix:
-                            util_matrix[(move_r, move_q)] = [self.simple_eval(alive_self, alive_opp)]
+                            util_matrix[(move_r, move_q)] = [self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp)]
                         else:
-                            util_matrix[(move_r, move_q)].append(self.simple_eval(alive_self, alive_opp))
+                            util_matrix[(move_r, move_q)].append(self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp))
 
         return util_matrix
 
