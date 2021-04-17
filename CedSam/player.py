@@ -189,25 +189,20 @@ class Player:
         w = 0.5
         targets = [token for token in opponent_tokens 
                    if isinstance(token, token_considered.enemy)]
-        distance = min([dist([token_considered.r, token_considered.q], 
-                             [target.r, target.q]) for target in targets])
+        distance = min([dist([token_considered.r, token_considered.q], [target.r, target.q]) for target in targets])
 
         return w * distance
 
     def ally_eval(self, token_considered, r, q, self_tokens):
         w = -10.0
-        team_kill = [(token.r, token.q) for token in self_tokens 
-                     if isinstance(token, token_considered.enemy) or 
-                     isinstance(token, token_considered.avoid)]
+        team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, token_considered.enemy) or isinstance(token, token_considered.avoid)]
         return w if (r, q) in team_kill else 0
 
     
     def avoid_eval(self, token_considered, opponent_tokens):
         w = 0.3
-        enemies = [token for token in opponent_tokens 
-                   if isinstance(token, token_considered.avoid)]
-        distance = min([dist([token_considered.r, token_considered.q], 
-                             [target.r, target.q]) for target in enemies])
+        enemies = [token for token in opponent_tokens if isinstance(token, token_considered.avoid)]
+        distance = min([dist([token_considered.r, token_considered.q], [target.r, target.q]) for target in enemies])
 
         return w * distance
 
