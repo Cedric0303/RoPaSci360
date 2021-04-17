@@ -187,8 +187,7 @@ class Player:
 
     def target_eval(self, token_considered, opponent_tokens):
         w = 0.5
-        targets = [token for token in opponent_tokens 
-                   if isinstance(token, token_considered.enemy)]
+        targets = [token for token in opponent_tokens if isinstance(token, token_considered.enemy)]
         distance = min([dist([token_considered.r, token_considered.q], [target.r, target.q]) for target in targets])
 
         return w * distance
