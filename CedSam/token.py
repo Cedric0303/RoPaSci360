@@ -19,15 +19,18 @@ class Token():
 
 class Rock(Token):
     def __init__(self, side, r, q):
-        self.enemq = Scissors
+        self.avoid = Paper
+        self.enemy = Scissors
         super().__init__('r', side, r, q)
 
 class Paper(Token):
     def __init__(self, side, r, q):
-        self.enemq = Rock
+        self.avoid = Scissors
+        self.enemy = Rock
         super().__init__('p', side, r, q)
 
 class Scissors(Token):
     def __init__(self, side, r, q):
-        self.enemq = Paper
+        self.avoid = Rock
+        self.enemy = Paper
         super().__init__('s', side, r, q)

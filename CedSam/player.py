@@ -1,4 +1,5 @@
 from random import choice, randrange
+from math import dist
 from CedSam.board import Board
 from CedSam.side import Lower, Upper
 from CedSam.token import Rock, Paper, Scissors
@@ -109,14 +110,6 @@ class Player:
             self.board.battle(self.self_tokens, self.opponent_tokens)
         self.turn += 1
 
-    # Returns simple evaluation of player tokens minus opponent tokens
-    def simple_eval(self, self_tokens, opponent_tokens):
-    
-        difference = len(self_tokens) - len(opponent_tokens)
-    
-        if difference < 0: return 0
-        else: return difference
-
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
 
@@ -140,63 +133,105 @@ class Player:
     """
     def build_utility(self, token_considered, target_token, enemy_token, self_tokens, opponent_tokens):
         
-        util_matrix = {}
+        util_matrix = dict()
         possible = token_considered.get_adj_hex()
 
         # enumerate all possible moves for our token
-        for move_x, move_y in possible:
+        for move_r, move_q in possible:
             
             shallow_self = self_tokens.copy()
-            if Board.check_bounds(move_x, move_y):
-                self.adjust_list(token_considered, shallow_self, move_x, move_y)
+            if Board.check_bounds(move_r, move_q):
+                self.adjust_list(token_considered, shallow_self, move_r, move_q)
 
                 target_moves = target_token.get_adj_hex()
                 enemy_moves = enemy_token.get_adj_hex()
 
-                for opp_x, opp_y in target_moves:
+                for opp_r, opp_q in target_moves:
                     shallow_opp = opponent_tokens.copy()
-                    if Board.check_bounds(opp_x, opp_y):
-                        self.adjust_list(target_token, shallow_opp, opp_x, opp_y)
+                    if Board.check_bounds(opp_r, opp_q):
+                        self.adjust_list(target_token, shallow_opp, opp_r, opp_q)
 
                         # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
                         alive_self, alive_opp = Board.battle(shallow_self, shallow_opp)
 
-                        if (move_x, move_y) not in util_matrix:
-                            util_matrix[(move_x, move_y)] = [self.simple_eval(alive_self, alive_opp)]
+                        if (move_r, move_q) not in util_matrix:
+                            util_matrix[(move_r, move_q)] = [self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp)]
                         else:
-                            util_matrix[(move_x, move_y)].append(self.simple_eval(alive_self, alive_opp))
+                            util_matrix[(move_r, move_q)].append(self.simple_eval(alive_self, alive_opp))
 
-                for opp_x, opp_y in enemy_moves:
+                for opp_r, opp_q in enemy_moves:
                     shallow_opp = opponent_tokens.copy()
-                    if Board.check_bounds(opp_x, opp_y):
-                        self.adjust_list(enemy_token, shallow_opp, opp_x, opp_y)
+                    if Board.check_bounds(opp_r, opp_q):
+                        self.adjust_list(enemy_token, shallow_opp, opp_r, opp_q)
 
                         # any way to modularise?
                         alive_self, alive_opp = Board.battle(shallow_self, shallow_opp)
 
-                        if (move_x, move_y) not in util_matrix:
-                            util_matrix[(move_x, move_y)] = [self.simple_eval(alive_self, alive_opp)]
+                        if (move_r, move_q) not in util_matrix:
+                            util_matrix[(move_r, move_q)] = [self.simple_eval(alive_self, alive_opp)]
                         else:
-                            util_matrix[(move_x, move_y)].append(self.simple_eval(alive_self, alive_opp))
+                            util_matrix[(move_r, move_q)].append(self.simple_eval(alive_self, alive_opp))
 
         return util_matrix
-                
 
-    """Carries out simultaneous move alpha beta pruning, once for each token
 
-    state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
-    alpha: lower bound
-    beta: upper bound
-    depth: terminal limit
-    token_considered: A single token of our player's side, whose moves are being evaluated
-    seen: A dictionary of board configs to maintain what has been seen, and at what depth level
-    """
-    def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen):
+    # Returns simple evaluation of player tokens minus opponent tokens
+    def simple_eval(self, token_considered, r, q, self_tokens, opponent_tokens):
+    
+        difference = len(self_tokens) - len(opponent_tokens)
+        difference += self.target_eval(token_considered, opponent_tokens)    
+        difference += self.ally_eval(token_considered, r, q, self_tokens)
+        difference += self.avoid_eval(token_considered, opponent_tokens)
 
-        # terminal state if it has reached depth limit, then just evaluate
-        if seen[state] == 1:
-            v = self.simple_eval(self_tokens, opponent_tokens)
-            return v
+        return difference
+
+    def target_eval(self, token_considered, opponent_tokens):
+        w = 0.5
+        targets = [token for token in opponent_tokens 
+                   if isinstance(token, token_considered.enemy)]
+        distance = min([dist([token_considered.r, token_considered.q], 
+                             [target.r, target.q]) for target in targets])
+
+        return w * distance
+
+    def ally_eval(self, token_considered, r, q, self_tokens):
+        w = -10.0
+        team_kill = [(token.r, token.q) for token in self_tokens 
+                     if isinstance(token, token_considered.enemy) or 
+                     isinstance(token, token_considered.avoid)]
+        return w if (r, q) in team_kill else 0
+
+    
+    def avoid_eval(self, token_considered, opponent_tokens):
+        w = 0.3
+        enemies = [token for token in opponent_tokens 
+                   if isinstance(token, token_considered.avoid)]
+        distance = min([dist([token_considered.r, token_considered.q], 
+                             [target.r, target.q]) for target in enemies])
+
+        return w * distance
+
+    def swing_eval(self, token_considered, r, q, self_tokens):
+        w = 2.0
+        adj = set(token_considered.get_adj_hex(r, q))
+        allies = set([(token.r, token.q) for token in self_tokens])
+        return w if bool(adj.intersection(allies)) else 0
+        
+    # """Carries out simultaneous move alpha beta pruning, once for each token
+
+    # state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
+    # alpha: lower bound
+    # beta: upper bound
+    # depth: terminal limit
+    # token_considered: A single token of our player's side, whose moves are being evaluated
+    # seen: A dictionary of board configs to maintain what has been seen, and at what depth level
+    # """
+    # def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen):
+
+    #     # terminal state if it has reached depth limit, then just evaluate
+    #     if seen[state] == 1:
+    #         v = self.simple_eval(self_tokens, opponent_tokens)
+    #         return v
         
 
 
