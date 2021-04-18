@@ -51,11 +51,9 @@ class Player:
                 q = randrange(-4, 5)
             return ("THROW", token.name.lower(), (r, q))
         else:
+            # VVV ALGO GOES IN THIS SECTION OF THE CODE VVV
             # slide
-            token = choice(self.self_tokens) if len(self.self_tokens) > 1 else self.self_tokens[0]
-            action = choice([(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)])
-            return ("SLIDE", (token.r, token.q), action)
-        # swing : WIP
+            # swing
     
     def update(self, opponent_action, player_action):
         """
