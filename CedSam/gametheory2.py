@@ -73,7 +73,7 @@ def solve_game(V, maximiser=True, rowplayer=True):
 class OptimisationError(Exception):
     """For if the optimiser reports failure."""
 
-
+"""
 if __name__ == "__main__":
     # Rock paper scissors example (row player, maximiser)
     print("test: rock paper scissors")
@@ -99,8 +99,12 @@ if __name__ == "__main__":
     print()
 
     print("test: student example")
-    V = np.array([[3, -1], [-1, -1]])
+    V = np.array([
+        [3, -1], 
+        [-1, -1]
+    ])
     print("game:", V, sep="\n")
     print("soln:", *solve_game(V, maximiser=True))
     print("true:", "(any strategy)         ", -1.0)
     print()
+"""
