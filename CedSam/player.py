@@ -56,6 +56,21 @@ class Player:
                 while both:
                     opponent = both.pop(0)
                     best, util_matrix, moves, opp_moves, best_idx, val, sol = self.lookahead(token, opponent, self.self_tokens, self.opponent_tokens, depth=0)
+                    print("--------------------")
+                    print(best)
+                    print("--------------------")
+                    print(util_matrix)
+                    print("--------------------")
+                    print(moves)
+                    print("--------------------")
+                    print(opp_moves)
+                    print("--------------------")
+                    print(best_idx)
+                    print("--------------------")
+                    print(val)
+                    print("--------------------")
+                    print(sol)
+                    print("--------------------")   
 
             pass
             # VVV ALGO GOES IN THIS SECTION OF THE CODE VVV
