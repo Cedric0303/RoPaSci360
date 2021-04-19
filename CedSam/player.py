@@ -1,5 +1,5 @@
 from random import choice, randrange
-from math import dist, log1p
+from math import dist, sqrt
 import numpy as np
 from CedSam.board import Board
 from CedSam.side import Lower, Upper
@@ -40,26 +40,20 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        tokens = list(map(type, self.self_tokens + self.opponent_tokens))
-        ttypes_on_board = int(Paper in tokens) + int(Rock in tokens) + int(Scissors in tokens)
-        if self.throws and (not self.self_tokens or ttypes_on_board == 1 or not self.turn % 10):
-            # throw
-            token = self.throws.pop(self.throws.index(choice(self.throws)))
-            r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
-            q = randrange(-4, 5)
-            while not Board.check_bounds(r, q):
-                r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
-                q = randrange(-4, 5)
-            return ("THROW", token.name.lower(), (r, q))
-        else:
+        if self.self_tokens:
             token_best_move = dict()
+
+            # save current opponent coords
+            if self.opponent_tokens:
+                cache_coord = [(each.r, each.q) for each in self.opponent_tokens]
             for token in self.self_tokens:
                 ori_r, ori_q = token.r, token.q
                 moves = [(r, q) for (r, q) in token.get_adj_hex(ori_r, ori_q) if Board.check_bounds(r, q)]
                 # moves = [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
-
+                # print("CHECKING", token.name)
                 # get both targets and enemies of a given token
                 both = [target for target in self.opponent_tokens if isinstance(target, token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, token.avoid)]
+                # print(both)
                 best_moves = dict()
                 if both:
                     while both:
@@ -71,22 +65,56 @@ class Player:
                             self_tokens = self.adjust_list(token, self_tokens, r, q)
                             best, util_matrix, moves_util, opp_moves, best_idx, val, sol = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
                             if (r,q) not in best_moves:
-                                best_moves[(r, q)] = [best]
+                                # print(r,q)
+                                best_moves[(r, q)] = [val]
                             else:
-                                best_moves[(r, q)].append(best)
-                            print(util_matrix)
-                            print(best)
+                                # print(r,q)
+                                best_moves[(r, q)].append(val)
+                            # print(util_matrix)
+                            # print(val)
                     # select max util value for a token
                     for coord, best_val in best_moves.items():
                         best_moves[coord] = max(best_val)
                     token.r, token.q = ori_r, ori_q
                     token_best_move[token] = max(best_moves, key=lambda key: best_moves[key])
-                
-            # choose the best token to move based on max util value of each token
-            best_token = max(token_best_move, key=lambda key: token_best_move[key][1])
-            (best_r, best_q) = token_best_move[best_token]
+                    # print(token_best_move)
 
-            return ("SLIDE", (best_token.r, best_token.q), ( best_r, best_q))
+            # replace opponent coord to original ones
+            if self.opponent_tokens:
+                for token in self.opponent_tokens:
+                    (cached_r, cached_q) = cache_coord.pop(0)
+                    token.move(cached_r, cached_q)
+            
+            # choose the best token to move based on max util value of each token
+            if token_best_move:
+                best_token = max(token_best_move, key=lambda key: token_best_move[key][1])
+                (best_r, best_q) = token_best_move[best_token]
+                
+                if dist([best_token.r, best_token.q], [best_r, best_q]) > sqrt(2):
+                    return ("SWING", (best_token.r, best_token.q), (best_r, best_q))
+                else:
+                    return ("SLIDE", (best_token.r, best_token.q), (best_r, best_q))
+        
+        tokens = list(map(type, self.self_tokens + self.opponent_tokens))
+        own = list(map(type, self.self_tokens))
+        unbeatable = [type(opponent) for token in self.self_tokens for opponent in self.opponent_tokens if isinstance(opponent, token.avoid)]
+        ttypes_on_board = int(Paper in tokens) + int(Rock in tokens) + int(Scissors in tokens)
+
+        if self.throws and (not self.self_tokens or ttypes_on_board == 1 or (unbeatable and len(own) == 1)):#  or not self.turn % 10):
+            # throw
+            if self.opponent_tokens:
+                random_enemy = choice(self.opponent_tokens)
+                token = choice([each for each in self.throws if isinstance(each, random_enemy.avoid)])
+                self.throws.remove(token)
+            else:
+                token = self.throws.pop(self.throws.index(choice(self.throws)))
+            r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
+            q = randrange(-4, 5)
+            while not Board.check_bounds(r, q):
+                r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
+                q = randrange(-4, 5)
+            return ("THROW", token.name.lower(), (r, q))
+       
     
     def update(self, opponent_action, player_action):
         """
@@ -96,7 +124,7 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        if 'T' in player_action[0]:
+        if "THROW" == player_action[0]:
             # self throw
             token_name = player_action[1]
             (r, q) = player_action[2]
@@ -111,7 +139,7 @@ class Player:
             else:
                 self.max_throw  += 1
 
-        elif 'L' in player_action[0] or 'W' in player_action[0]:
+        elif "SLIDE" == player_action[0] or "SWING" == player_action[0]:
             # self swing/slide
             prev_r, prev_q = player_action[1]
             next_r, next_q = player_action[2]
@@ -120,7 +148,7 @@ class Player:
                 and self.self_tokens[i].q == prev_q):
                     self.self_tokens[i].move(next_r, next_q)
 
-        if 'T' in opponent_action[0]:
+        if "THROW" == opponent_action[0]:
             # opponent throw
             token_name2 = opponent_action[1]
             (r2, q2) = opponent_action[2]
@@ -131,13 +159,12 @@ class Player:
             elif 's' in token_name2:
                 self.opponent_tokens.append(Scissors(self.enemy_side, r2, q2))
 
-        elif 'L' in opponent_action[0] or 'W' in opponent_action[0]:
+        elif "SLIDE" == opponent_action[0] or "SWING" == opponent_action[0]:
             # opponent swing/slide
             prev_r, prev_q = opponent_action[1]
             next_r, next_q = opponent_action[2]
             for i in range(len(self.opponent_tokens)):
-                if (self.opponent_tokens[i].r == prev_r \
-                and self.opponent_tokens[i].q == prev_q):
+                if (self.opponent_tokens[i].r == prev_r and self.opponent_tokens[i].q == prev_q):
                     self.opponent_tokens[i].move(next_r, next_q)
         self.self_tokens, self.opponent_tokens = \
             self.board.battle(self.self_tokens, self.opponent_tokens)
@@ -192,7 +219,7 @@ class Player:
                         # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
                         alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
 
-                        row_utility.append(self.simple_eval(token_considered, move_r, move_q, alive_self, alive_opp, target_enemy))
+                        row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, target_enemy))
                 
                 # don't add in an empty list if the opp move was invalid
                 if len(row_utility) != 0:
@@ -202,24 +229,27 @@ class Player:
 
 
     # Returns simple evaluation of player tokens minus opponent tokens
-    def simple_eval(self, cur_token, r, q, self_tokens, opponent_tokens, target_enemy):
-        difference = 10
-        difference += self.target_enemy_eval(cur_token, r, q, opponent_tokens, target_enemy)
-        difference += self.ally_eval(cur_token, r, q, self_tokens)
+    def simple_eval(self, cur_token, self_tokens, opponent_tokens, target_enemy):
+        difference = 0
+        if target_enemy == 1:
+            difference += self.target_enemy_eval(cur_token, opponent_tokens)
+        else:
+            difference -= self.target_enemy_eval(cur_token, opponent_tokens) * 0.5
+        difference += self.ally_eval(cur_token, self_tokens)
         return difference
 
-    def target_enemy_eval(self, cur_token, r, q, opponent_tokens, target_enemy):
-        w = 30 * target_enemy
-        targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy)]
-        # distance = [cur_token.manhattan_distance([r, q], [target.r, target.q]) for target in targets]
-        distance = [dist([r, q], [target.r, target.q]) for target in targets]
-        return round((w / (min(distance) + 1)) * (min(distance) + 2)) if distance else 0
+    def target_enemy_eval(self, cur_token, opponent_tokens):
+        w = 5
+        targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid)]
+        # distance = [dist([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
+        distance = [cur_token.manhattan_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
+        return -(w * min(distance)) if distance else 0
     
-    def ally_eval(self, cur_token, r, q, self_tokens):
+    def ally_eval(self, cur_token, self_tokens):
         w = -100
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
                                                                     isinstance(cur_token, token.avoid) or isinstance(cur_token, token.enemy)]
-        return w if (r, q) in team_kill else 0
+        return w if (cur_token.r, cur_token.q) in team_kill else 0
 
     # def swing_eval(self, cur_token, r, q, self_tokens):
     #     w = 2

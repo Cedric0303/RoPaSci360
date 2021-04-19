@@ -38,7 +38,7 @@ class Player:
         """
         tokens = list(map(type, self.self_tokens + self.opponent_tokens))
         ttypes_on_board = int(Paper in tokens) + int(Rock in tokens) + int(Scissors in tokens)
-        if self.throws and (not self.self_tokens or ttypes_on_board == 1 or not self.turn % 10):
+        if self.throws and (not self.self_tokens or ttypes_on_board == 1 ):#  or not self.turn % 10):
             # throw
             token = self.throws.pop(self.throws.index(choice(self.throws)))
             r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
