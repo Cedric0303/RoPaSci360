@@ -5,6 +5,7 @@ from CedSam.board import Board
 from CedSam.side import Lower, Upper
 from CedSam.token import Rock, Paper, Scissors
 from CedSam.gametheory2 import solve_game
+# from copy import copy, deepcopy
 
 class Player:
     def __init__(self, side):
@@ -55,29 +56,32 @@ class Player:
             for token in self.self_tokens:
                 ori_r, ori_q = token.r, token.q
                 moves = [(r, q) for (r, q) in token.get_adj_hex(ori_r, ori_q) if Board.check_bounds(r, q)]
+                # moves = [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
 
                 # get both targets and enemies of a given token
                 both = [target for target in self.opponent_tokens if isinstance(target, token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, token.avoid)]
                 best_moves = dict()
-                while both:
-                    # generate all util values for each target/enemy for a token
-                    opponent = both.pop(0)
-                    for r, q in moves:
-                        self_tokens = self.self_tokens.copy()
-                        self_oppo = self.opponent_tokens.copy()
-                        self_tokens = self.adjust_list(token, self_tokens, r, q)
-                        best, util_matrix, moves_util, opp_moves, best_idx, val, sol = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
-                        if (r,q) not in best_moves:
-                            best_moves[(r, q)] = [best]
-                        else:
-                            best_moves[(r, q)].append(best)
+                if both:
+                    while both:
+                        # generate all util values for each target/enemy for a token
+                        opponent = both.pop(0)
+                        for r, q in moves:
+                            self_tokens = self.self_tokens.copy()
+                            self_oppo = self.opponent_tokens.copy()
+                            self_tokens = self.adjust_list(token, self_tokens, r, q)
+                            best, util_matrix, moves_util, opp_moves, best_idx, val, sol = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
+                            if (r,q) not in best_moves:
+                                best_moves[(r, q)] = [best]
+                            else:
+                                best_moves[(r, q)].append(best)
+                            print(util_matrix)
+                            print(best)
+                    # select max util value for a token
+                    for coord, best_val in best_moves.items():
+                        best_moves[coord] = max(best_val)
+                    token.r, token.q = ori_r, ori_q
+                    token_best_move[token] = max(best_moves, key=lambda key: best_moves[key])
                 
-                # select max util value for a token
-                for coord, best_val in best_moves.items():
-                    best_moves[coord] = max(best_val)
-                token.r, token.q = ori_r, ori_q
-                token_best_move[token] = max(best_moves, key=lambda key: best_moves[key])
-            
             # choose the best token to move based on max util value of each token
             best_token = max(token_best_move, key=lambda key: token_best_move[key][1])
             (best_r, best_q) = token_best_move[best_token]
@@ -199,19 +203,20 @@ class Player:
 
     # Returns simple evaluation of player tokens minus opponent tokens
     def simple_eval(self, cur_token, r, q, self_tokens, opponent_tokens, target_enemy):
-        difference = self.target_enemy_eval(cur_token, r, q, opponent_tokens, target_enemy)
+        difference = 10
+        difference += self.target_enemy_eval(cur_token, r, q, opponent_tokens, target_enemy)
         difference += self.ally_eval(cur_token, r, q, self_tokens)
         return difference
 
     def target_enemy_eval(self, cur_token, r, q, opponent_tokens, target_enemy):
-        w = 3 * target_enemy
+        w = 30 * target_enemy
         targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy)]
         # distance = [cur_token.manhattan_distance([r, q], [target.r, target.q]) for target in targets]
         distance = [dist([r, q], [target.r, target.q]) for target in targets]
         return round((w / (min(distance) + 1)) * (min(distance) + 2)) if distance else 0
     
     def ally_eval(self, cur_token, r, q, self_tokens):
-        w = -1
+        w = -100
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
                                                                     isinstance(cur_token, token.avoid) or isinstance(cur_token, token.enemy)]
         return w if (r, q) in team_kill else 0
@@ -250,7 +255,6 @@ class Player:
         # now adjust the list, and recurse
         new_self = self.adjust_list(token_considered, self_tokens, best_r, best_q)
         new_opp = self.adjust_list(target, opponent_tokens, opp_r, opp_q)
-
         return self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
 
 
