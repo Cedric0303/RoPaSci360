@@ -238,6 +238,7 @@ class Player:
         difference += self.ally_eval(cur_token, self_tokens)
         return difference
 
+    # returns higher utility if target token is nearer
     def target_enemy_eval(self, cur_token, opponent_tokens):
         w = 1
         targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid)]
@@ -249,6 +250,7 @@ class Player:
         # lower value if at board border
         return
     
+    # don't step on own tokens
     def ally_eval(self, cur_token, self_tokens):
         w = -20
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
@@ -262,7 +264,8 @@ class Player:
     #     return w if adj.intersection(allies) else 0
     
     """
-    Carries out the search in a tree of utility matrices to find the best action for our token
+    Carries out the search in a tree of utility matrices to find the best action for our token.
+    Returns the SUM utility of best moves seen
     token_considered: a token of ours that we're thinking to move
     depth: terminal limit, i.e. number of moves we're looking ahead
 
@@ -277,25 +280,32 @@ class Player:
             sol = sol.tolist()
             return max(sol) * val, util_matrix, my_moves, opp_moves, sol.index(max(sol)), val, sol
 
+
         util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
         sol_best, val_best = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
-        sol_opp, val_opp = solve_game(np.array(util_matrix), maximiser=False, rowplayer=False)
-
+        
+        # fix what our best move is
         sol_best = sol_best.tolist()
-        sol_opp = sol_opp.tolist()
         (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
-        (opp_r, opp_q) = opp_moves[sol_opp.index(max(sol_opp))]
-
-        # now adjust the list, and recurse
         new_self = self.adjust_list(token_considered, self_tokens, best_r, best_q)
-        new_opp = self.adjust_list(target, opponent_tokens, opp_r, opp_q)
-        return self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
 
+        max_value = 0
 
+        # explore the possible moves opp can take
+        for move in opp_moves:
+            
+            # adjust opp's list, and recurse
+            new_opp = self.adjust_list(target, opponent_tokens, opp_r, opp_q)
+            temp, _b, _c, _d, _e, _f, _g = self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
 
-
-
-
+            if temp > max_value:
+                max_value = temp
+        
+        return val_best + max_value
+        
+        
+        
+    
 
 
     # """Carries out simultaneous move alpha beta pruning, once for each token
