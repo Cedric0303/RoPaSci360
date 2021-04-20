@@ -47,11 +47,13 @@ class Player:
 
             # save current opponent coords
             if self.opponent_tokens:
-                cache_coord = [(each.r, each.q) for each in self.opponent_tokens]
+                cache_oppo = [(each.r, each.q) for each in self.opponent_tokens]
+            if self.self_tokens:
+                cache_self = [(each.r, each.q) for each in self.self_tokens]
+                
             for token in self.self_tokens:
                 ori_r, ori_q = token.r, token.q
                 moves = [(r, q) for (r, q) in token.get_adj_hex(ori_r, ori_q) if Board.check_bounds(r, q)]
-                # moves = [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
                 print("CHECKING", token.name)
                 # get both targets and enemies of a given token
                 both = [target for target in self.opponent_tokens if isinstance(target, token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, token.avoid)]
@@ -65,32 +67,32 @@ class Player:
                             self_tokens = self.self_tokens.copy()
                             self_oppo = self.opponent_tokens.copy()
                             self_tokens = self.adjust_list(token, self_tokens, r, q)
-                            best, util_matrix, moves_util, opp_moves, best_idx, val, sol = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
+                            val = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
                             if (r,q) not in best_moves:
-                                # print(r,q)
                                 best_moves[(r, q)] = [val]
                             else:
-                                # print(r,q)
                                 best_moves[(r, q)].append(val)
-                            # print(util_matrix)
-                            # print(val)
                     # select max util value for a token
                     for coord, best_val in best_moves.items():
                         best_moves[coord] = max(best_val)
-                        print(coord, max(best_val))
+                        print(coord, best_moves[coord])
                     token.r, token.q = ori_r, ori_q
-                    token_best_move[token] = max(best_moves, key=lambda key: best_moves[key])
-                    # print(token_best_move)
+                    token_best_move[token] =[max(best_moves, key=lambda key: best_moves[key]), max(best_moves.values())]
                 # replace opponent coord to original ones
-                if self.opponent_tokens:
-                    for i in range(len(cache_coord)):
-                        c_r, c_q = cache_coord[i]
-                        self.opponent_tokens[i].move(c_r, c_q)
+            if self.opponent_tokens:
+                for i in range(len(cache_oppo)):
+                    c_r, c_q = cache_oppo[i]
+                    self.opponent_tokens[i].move(c_r, c_q)
+            if self.self_tokens:
+                for i in range(len(cache_self)):
+                    c_r, c_q = cache_self[i]
+                    self.self_tokens[i].move(c_r, c_q)
 
             # choose the best token to move based on max util value of each token
             if token_best_move:
+                print(token_best_move)
                 best_token = max(token_best_move, key=lambda key: token_best_move[key][1])
-                (best_r, best_q) = token_best_move[best_token]
+                (best_r, best_q) = token_best_move[best_token][0]
                 if dist([best_token.r, best_token.q], [best_r, best_q]) > sqrt(2):
                     return ("SWING", (best_token.r, best_token.q), (best_r, best_q))
                 else:
@@ -113,7 +115,7 @@ class Player:
                 r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
                 q = randrange(-4, 5)
             return ("THROW", token.name.lower(), (r, q))
-       
+    
     
     def update(self, opponent_action, player_action):
         """
@@ -232,27 +234,40 @@ class Player:
         difference = 1
         
         if target_enemy == 1:
-            difference += self.target_enemy_eval(cur_token, opponent_tokens)
+            difference += self.target_eval(cur_token, opponent_tokens)
         else:
-            difference -= self.target_enemy_eval(cur_token, opponent_tokens)
+            difference += self.enemy_eval(cur_token, opponent_tokens)
         difference += self.ally_eval(cur_token, self_tokens)
+        # difference += self.border_eval(cur_token)
         return difference
 
-    # returns higher utility if target token is nearer
-    def target_enemy_eval(self, cur_token, opponent_tokens):
+    def target_eval(self, cur_token, opponent_tokens):
         w = 1
-        targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid)]
+        targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy)]
         distance = [cur_token.euclidean_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        # distance = [cur_token.manhattan_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        return -(w * min(distance)) if distance else 0
+        if distance:
+                return w * (50/min(distance) * (min(distance) + 1))
+        return 0
+
+    def enemy_eval(self, cur_token, opponent_tokens):
+        w = 1
+        targets = [token for token in opponent_tokens if isinstance(token, cur_token.avoid)]
+        distance = [cur_token.euclidean_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
+        if distance:
+            if min(distance) == 0:
+                return 500
+            else:
+                return -w * (50/min(distance) * (min(distance) + 1))
+        return 0
 
     def border_eval(self, cur_token):
+        w = -100
         # lower value if at board border
-        return
+        border = [(r, q) for (r, q) in cur_token.get_adj_hex(cur_token.r, cur_token.q) if self.board.check_bounds(r, q)] != 6
+        return w if border else 0
     
-    # don't step on own tokens
     def ally_eval(self, cur_token, self_tokens):
-        w = -20
+        w = -1
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
                                                                     isinstance(cur_token, token.avoid) or isinstance(cur_token, token.enemy)]
         return w if (cur_token.r, cur_token.q) in team_kill else 0
@@ -278,8 +293,7 @@ class Player:
             util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
             sol, val = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
             sol = sol.tolist()
-            return max(sol) * val, util_matrix, my_moves, opp_moves, sol.index(max(sol)), val, sol
-
+            return val
 
         util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
         sol_best, val_best = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
@@ -293,10 +307,10 @@ class Player:
 
         # explore the possible moves opp can take
         for move in opp_moves:
-            
+            opp_r, opp_q = move
             # adjust opp's list, and recurse
             new_opp = self.adjust_list(target, opponent_tokens, opp_r, opp_q)
-            temp, _b, _c, _d, _e, _f, _g = self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
+            temp = self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
 
             if temp > max_value:
                 max_value = temp

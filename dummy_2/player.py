@@ -70,14 +70,14 @@ class Player:
                 util_move = [move for move in each_util[0].keys()]
                 util_matrix = [util for util in each_util[0].values()]
                 s, v = solve_game(util_matrix)
-                print(token, s, v)
+                # print(token, s, v)
                 s = s.tolist()
                 if s.count(s[0]) == len(s):
                     action = choice(util_move)
                 else:
                     action = util_move[s.index(max(s))]
                 token_utils[token] = [action, v]
-            print(token_utils)
+            # print(token_utils)
             token = max(token_utils, key=lambda key: token_utils[key][1])
             action = token_utils[token][0]
             # summary.print_(summary.summarize(self.all_objects))
@@ -171,8 +171,8 @@ class Player:
             if Board.check_bounds(move_r, move_q):
                 shallow_self = self.adjust_list(cur_token, shallow_self, move_r, move_q)
 
-                print("-----------")
-                print(move_r, move_q)
+                # print("-----------")
+                # print(move_r, move_q)
                 if target_token:
                     target_moves = target_token.get_adj_hex(target_token.r, target_token.q)
                     for opp_r, opp_q in target_moves:
@@ -205,14 +205,14 @@ class Player:
 
     # Returns simple evaluation of player tokens minus opponent tokens
     def simple_eval(self, cur_token, r, q, self_tokens, opponent_tokens):
-        print("target", self.target_eval(cur_token, r, q, opponent_tokens))
+        # print("target", self.target_eval(cur_token, r, q, opponent_tokens))
         # print("ally", self.ally_eval(cur_token, r, q, self_tokens))
         # print("avoid", self.avoid_eval(cur_token, r, q, opponent_tokens))
         difference = 0
         difference += self.target_eval(cur_token, r, q, opponent_tokens)
         difference += self.ally_eval(cur_token, r, q, self_tokens)
         difference += self.avoid_eval(cur_token, r, q, opponent_tokens)
-        print("diff", difference)
+        # print("diff", difference)
         return difference
 
     def target_eval(self, cur_token, r, q, opponent_tokens):
