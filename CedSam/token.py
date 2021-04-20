@@ -1,5 +1,6 @@
 from dummy_2.side import Upper
 import numpy as np
+from math import sqrt
 
 class Token():
 
@@ -18,10 +19,16 @@ class Token():
     def get_adj_hex(self, r, q):
         return [(r, q-1), (r-1, q), (r+1, q), 
                 (r, q+1), (r-1, q+1), (r+1, q-1)]
-    
-    def manhattan_distance(self, a, b):
-        npa, npb = np.asarray(a), np.asarray(b)
-        return np.abs(npa-npb).sum()
+
+    def hex_distance(self, a, b):
+        a_r, a_q = a
+        b_r, b_q = b
+        return (abs(a_q - b_q) + abs(a_q+a_r - b_q-b_r) + abs(a_r-b_r)) / 2
+
+    def euclidean_distance(self, a, b):
+        a_r, a_q = a
+        b_r, b_q = b
+        return sqrt((a_r - b_r)**2 + (a_q - b_q)**2 - ((a_r - b_r)*(a_q - b_q)))
 
 class Rock(Token):
     def __init__(self, side, r, q):
