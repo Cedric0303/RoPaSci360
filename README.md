@@ -5,5 +5,5 @@
 # TODO
 - [ ] implement targeting system
 - [ ] write more eval funcs
-- [ ] create target_enemy alg itself
+- [ ] fix lookahead
 - [ ] think about what to do for throws
