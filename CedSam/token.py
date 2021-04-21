@@ -1,5 +1,4 @@
-from dummy_2.side import Upper
-import numpy as np
+from CedSam.side import Upper
 from math import sqrt
 
 class Token():
@@ -23,7 +22,7 @@ class Token():
     def hex_distance(self, a, b):
         a_r, a_q = a
         b_r, b_q = b
-        return (abs(a_q - b_q) + abs(a_q+a_r - b_q-b_r) + abs(a_r-b_r)) / 2
+        return (abs(a_q - b_q) + abs(a_q + a_r - b_q - b_r) + abs(a_r - b_r)) / 2
 
     def euclidean_distance(self, a, b):
         a_r, a_q = a

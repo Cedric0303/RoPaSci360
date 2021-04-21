@@ -1,5 +1,4 @@
 from sys import maxsize
-from math import dist
 
 class Side():
 
@@ -9,7 +8,7 @@ class Side():
         best_target = False
         for target in lowers.token_list:
             if isinstance(target, token.enemy):
-                distance = dist(token.coord, target.coord)
+                distance = token.hex_distance(token.coord, target.coord)
                 if distance < nearest:
                     nearest = distance
                     best_target = target
