@@ -1,5 +1,6 @@
 from random import choice, randrange
 import numpy as np
+from numpy.lib.function_base import diff
 from CedSam.board import Board
 from CedSam.side import Lower, Upper
 from CedSam.token import Rock, Paper, Scissors
@@ -42,7 +43,7 @@ class Player:
         """
         beatable = [type(opponent) for token in self.self_tokens for opponent in self.opponent_tokens if isinstance(opponent, token.enemy)]
         
-        if self.self_tokens and beatable and self.turn % 10:
+        if self.self_tokens and beatable:# and self.turn % 10:
             token_best_move = dict()
 
             # save current opponent coords
@@ -65,7 +66,7 @@ class Player:
                         self_tokens = self.self_tokens.copy()
                         self_oppo = self.opponent_tokens.copy()
                         val, move = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
-                        print(val, move)
+                        print(move, val)
 
                         token.r, token.q = ori_r, ori_q
                         if token not in token_best_move:
@@ -178,13 +179,6 @@ class Player:
     def adjust_list(self, token, token_list, new_r, new_q):
 
         token_list[token_list.index(token)].move(new_r, new_q)
-        # if token.name.upper() == 'R':
-        #     token_list.append(Rock(token.side, new_r, new_q))
-        # elif token.name.upper() == 'P':
-        #     token_list.append(Paper(token.side, new_r, new_q))
-        # elif token.name.upper() == 'S':
-        #     token_list.append(Scissors(token.side, new_r, new_q))
-
         return token_list
 
     """
@@ -200,7 +194,6 @@ class Player:
         util_matrix = list()
         possible = token_considered.get_adj_hex(token_considered.r, token_considered.q)
         enemy_moves = enemy_token.get_adj_hex(enemy_token.r, enemy_token.q)
-        target_enemy = 1 if isinstance(enemy_token, token_considered.enemy) else -1
 
         opp_valid_moves = list()
         my_valid_moves = list()
@@ -232,7 +225,7 @@ class Player:
                         # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
                         alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
 
-                        row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, target_enemy))
+                        row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, enemy_token))
                 
                 # don't add in an empty list if the opp move was invalid
                 if len(row_utility) != 0:
@@ -250,68 +243,62 @@ class Player:
         return util_matrix, my_valid_moves, opp_valid_moves
 
     # Returns simple evaluation of player tokens minus opponent tokens
-    def simple_eval(self, cur_token, self_tokens, opponent_tokens, target_enemy):
-        difference = 1
-        difference += self.target_eval(cur_token, opponent_tokens)
-        difference += self.enemy_eval(cur_token, opponent_tokens)
-        # if target_enemy == 1:
-        #     difference += self.target_eval(cur_token, opponent_tokens)
-        # else:
-        #     difference += self.enemy_eval(cur_token, opponent_tokens)
-        # difference += self.ally_eval(cur_token, self_tokens)
-        # difference += self.border_eval(cur_token)
+    def simple_eval(self, cur_token, self_tokens, opponent_tokens, enemy_token):
+        difference = 20
+        if isinstance(enemy_token, cur_token.enemy):
+            difference += self.target_eval(cur_token, enemy_token)
+            difference += self.kill_eval(cur_token, enemy_token)
+        else:
+            difference += self.avoid_eval(cur_token, enemy_token)
+            difference += self.death_eval(cur_token, enemy_token)
+        difference += self.ally_eval(cur_token, self_tokens)
+        difference += self.border_eval(cur_token)
         return difference
 
-    def target_eval(self, cur_token, opponent_tokens):
+    def target_eval(self, cur_token, enemy_token):
         w = 1
-        targets = [token for token in opponent_tokens if isinstance(token, cur_token.enemy)]
-        # distance = [cur_token.euclidean_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        distance = [cur_token.hex_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        # print("distance", distance)
-        # if targets:
-        #     print(cur_token.r, cur_token.q, targets[0].r, targets[0].q)
+        distance = cur_token.hex_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
         if distance:
-            if min(distance) == 0:
-                print("WTF")
-                # return w * 10
-            # print("target", w * ((10/min(distance)) * (min(distance) + 1)))
-            return w * ((12/min(distance)) * (min(distance) + 1))
+            return w * (((12/distance) * (distance + 1)) / 12)
+        return w
+
+    def kill_eval(self, cur_token, enemy_token):
+        w = 20
+        distance = cur_token.euclidean_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
+        if distance == 0:
+            return w
         return 0
 
-    def enemy_eval(self, cur_token, opponent_tokens):
-        w = 0.5
-        targets = [token for token in opponent_tokens if isinstance(token, cur_token.avoid)]
-        # distance = [cur_token.euclidean_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        distance = [cur_token.hex_distance([cur_token.r, cur_token.q], [target.r, target.q]) for target in targets]
-        # print("distance", distance)
-        # if targets:
-        #     print(cur_token.r, cur_token.q, targets[0].r, targets[0].q)
-        if distance:
-            if min(distance) == 0:
-                return w * 10
-            else:
-                # print("avoid", w * min(distance))
-                return w * min(distance)
-        else:
-            return w
-
-    def border_eval(self, cur_token):
-        w = -100
-        # lower value if at board border
-        border = [(r, q) for (r, q) in cur_token.get_adj_hex(cur_token.r, cur_token.q) if self.board.check_bounds(r, q)] != 6
-        return w if border else 0
-    
-    def ally_eval(self, cur_token, self_tokens):
+    def avoid_eval(self, cur_token, enemy_token):
         w = -1
+        distance = cur_token.hex_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
+        if distance:
+            return w * distance
+        return w
+    
+    def death_eval(self, cur_token, enemy_token):
+        w = -20
+        distance = cur_token.euclidean_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
+        if distance == 0:
+            return w
+        return 0
+
+    def ally_eval(self, cur_token, self_tokens):
+        w = -20
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
                                                                     isinstance(cur_token, token.avoid) or isinstance(cur_token, token.enemy)]
         return w if (cur_token.r, cur_token.q) in team_kill else 0
 
-    # def swing_eval(self, cur_token, r, q, self_tokens):
-    #     w = 2
-    #     adj = set(cur_token.get_adj_hex(r, q))
-    #     allies = set([(token.r, token.q) for token in self_tokens])
-    #     return w if adj.intersection(allies) else 0
+    def border_eval(self, cur_token):
+        w = -20
+        border = [(r, q) for (r, q) in cur_token.get_adj_hex(cur_token.r, cur_token.q) if self.board.check_bounds(r, q)] != 6
+        return w if border else 0
+    
+    def swing_eval(self, cur_token, self_tokens):
+        w = 10
+        adj = set(cur_token.get_adj_hex(cur_token.r, cur_token.q))
+        allies = set([(token.r, token.q) for token in self_tokens])
+        return w if adj.intersection(allies) else 0
     
     """
     Carries out the search in a tree of utility matrices to find the best action for our token.
@@ -350,27 +337,3 @@ class Player:
                 max_value = val
         
         return val_best + max_value, (best_r, best_q)
-        
-        
-        
-    
-
-
-    # """Carries out simultaneous move alpha beta pruning, once for each token
-
-    # state: A game state, i.e. a board configuration (self_tokens + opponent_tokens)
-    # alpha: lower bound
-    # beta: upper bound
-    # depth: terminal limit
-    # token_considered: A single token of our player's side, whose moves are being evaluated
-    # seen: A dictionary of board configs to maintain what has been seen, and at what depth level
-    # """
-    # def smab(self, self_tokens, opponent_tokens, alpha, beta, depth, token_considered, seen):
-
-    #     # terminal state if it has reached depth limit, then just evaluate
-    #     if seen[state] == 1:
-    #         v = self.simple_eval(self_tokens, opponent_tokens)
-    #         return v
-        
-
-
