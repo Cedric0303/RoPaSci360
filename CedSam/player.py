@@ -42,58 +42,77 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
+        if len(self.history) > 5: 
+            del self.history[0]
+
         beatable = [type(opponent) for token in self.self_tokens for opponent in self.opponent_tokens if isinstance(opponent, token.enemy)]
         
-        if self.self_tokens and beatable:# and self.turn % 10:
-            token_best_move = dict()
+        if self.self_tokens: 
+            if beatable:# and self.turn % 10:
+                token_best_move = dict()
 
-            # save current opponent coords
-            if self.opponent_tokens:
-                cache_oppo = [(each.r, each.q) for each in self.opponent_tokens]
-            if self.self_tokens:
-                cache_self = [(each.r, each.q) for each in self.self_tokens]
+                # save current opponent coords
+                if self.opponent_tokens:
+                    cache_oppo = [(each.r, each.q) for each in self.opponent_tokens]
+                if self.self_tokens:
+                    cache_self = [(each.r, each.q) for each in self.self_tokens]
                 
-            for token in self.self_tokens:
-                ori_r, ori_q = token.r, token.q
-                # moves = [(r, q) for (r, q) in token.get_adj_hex(ori_r, ori_q) if Board.check_bounds(r, q)]
-                print("CHECKING", token.name)
-                # get both targets and enemies of a given token
-                both = [target for target in self.opponent_tokens if isinstance(target, token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, token.avoid)]
-                # print(both)
-                if both:
-                    while both:
-                        # generate all util values for each target/enemy for a token
-                        opponent = both.pop(0)
-                        self_tokens = self.self_tokens.copy()
-                        self_oppo = self.opponent_tokens.copy()
-                        val, move = self.lookahead(token, opponent, self_tokens, self_oppo, depth=0)
-                        print(move, val)
-
-                        token.r, token.q = ori_r, ori_q
-                        if token not in token_best_move:
-                            token_best_move[token] = [move, val]
-                        elif val > token_best_move[token][1]:
-                            token_best_move[token] = [move, val]
-            
-            # replace opponent coord to original ones
-            if self.opponent_tokens:
-                for i in range(len(cache_oppo)):
-                    c_r, c_q = cache_oppo[i]
-                    self.opponent_tokens[i].move(c_r, c_q)
-            if self.self_tokens:
-                for i in range(len(cache_self)):
-                    c_r, c_q = cache_self[i]
-                    self.self_tokens[i].move(c_r, c_q)
-
-            # choose the best token to move based on max util value of each token
-            if token_best_move:
-                # print(token_best_move)
-                best_token = max(token_best_move, key=lambda key: token_best_move[key][1])
-                (best_r, best_q) = token_best_move[best_token][0]
-                if best_token.hex_distance([best_token.r, best_token.q], [best_r, best_q]) > 1:
-                    return ("SWING", (best_token.r, best_token.q), (best_r, best_q))
+                if len(self.self_tokens) > 1:
+                    for token in self.self_tokens:
+                        best_val = -100
+                        both = [target for target in self.opponent_tokens if isinstance(target, token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, token.avoid)]
+                        if both:
+                            while both:
+                                opponent = both.pop(0)
+                                val = self.token_eval(token, opponent)
+                                if val > best_val:
+                                    best_val = val;
+                                # print(token.name, best_val)
+                        else:
+                            continue
+                        token_best_move[token] = best_val
+                    move_token = max(token_best_move, key=lambda key: token_best_move[key])
                 else:
-                    return ("SLIDE", (best_token.r, best_token.q), (best_r, best_q))
+                    move_token = self.self_tokens[0]
+                    
+                ori_r, ori_q = move_token.r, move_token.q
+                (best_r, best_q) = False, False
+                best_val = -100
+                both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
+                while both:
+                    opponent = both.pop(0)
+                    self_tokens = self.self_tokens.copy()
+                    self_oppo = self.opponent_tokens.copy()
+                    val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
+                    if val > best_val:
+                        best_val = val
+                        (best_r, best_q) = move
+                    move_token.r, move_token.q = ori_r, ori_q
+                if best_val == -100:
+                    (best_r, best_r) = choice([(r, q) for (r, q) in move_token.get_adj_hex(move_token.r, move_token.q) if Board.check_bounds(r, q)])
+
+                if self.opponent_tokens:
+                    for i in range(len(cache_oppo)):
+                        c_r, c_q = cache_oppo[i]
+                        self.opponent_tokens[i].move(c_r, c_q)
+                if self.self_tokens:
+                    for i in range(len(cache_self)):
+                        c_r, c_q = cache_self[i]
+                        self.self_tokens[i].move(c_r, c_q)
+
+                self.history.append((move_token, best_r, best_q))
+                if move_token.hex_distance([move_token.r, move_token.q], [best_r, best_q]) > 1:
+                    return ("SWING", (move_token.r, move_token.q), (best_r, best_q))
+                else:
+                    return ("SLIDE", (move_token.r, move_token.q), (best_r, best_q))
+
+            elif not self.throws:
+                token = choice(self.self_tokens) if len(self.self_tokens) > 1 else self.self_tokens[0]
+                (best_r, best_q) = choice([(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)])
+                if token.hex_distance([token.r, token.q], [best_r, best_q]) > 1:
+                    return ("SWING", (token.r, token.q), (best_r, best_q))
+                else:
+                    return ("SLIDE", (token.r, token.q), (best_r, best_q))
         
         tokens = list(map(type, self.self_tokens + self.opponent_tokens))
         ttypes_on_board = int(Paper in tokens) + int(Rock in tokens) + int(Scissors in tokens)
@@ -139,15 +158,15 @@ class Player:
             if self.side is Upper:
                 self.min_throw -= 1
             else:
-                self.max_throw  += 1
+                self.max_throw += 1
 
         elif "SLIDE" == player_action[0] or "SWING" == player_action[0]:
             # self swing/slide
             prev_r, prev_q = player_action[1]
             next_r, next_q = player_action[2]
             for i in range(len(self.self_tokens)):
-                if (self.self_tokens[i].r == prev_r \
-                and self.self_tokens[i].q == prev_q):
+                if (self.self_tokens[i].r == prev_r and self.self_tokens[i].q == prev_q):
+                    print("CHANGING SELF", (prev_r, prev_q), ( next_r, next_q))
                     self.self_tokens[i].move(next_r, next_q)
 
         if "THROW" == opponent_action[0]:
@@ -167,10 +186,11 @@ class Player:
             next_r, next_q = opponent_action[2]
             for i in range(len(self.opponent_tokens)):
                 if (self.opponent_tokens[i].r == prev_r and self.opponent_tokens[i].q == prev_q):
+                    print("CHANGING ENEMY", (prev_r, prev_q), (next_r, next_q))
                     self.opponent_tokens[i].move(next_r, next_q)
         new_self, new_oppo = self.board.battle(self.self_tokens, self.opponent_tokens)
-        self.kills += (len(self.self_tokens) - len(new_self))
-        self.deaths += (len(self.opponent_tokens) - len(new_oppo))
+        self.kills += (len(self.opponent_tokens) - len(new_oppo))
+        self.deaths += (len(self.self_tokens) - len(new_self))
         self.self_tokens, self.opponent_tokens = new_self, new_oppo
         self.turn += 1
         print("KILLED:", self.kills)
@@ -199,12 +219,6 @@ class Player:
         opp_valid_moves = list()
         my_valid_moves = list()
 
-        # # save current opponent coords
-        # if opponent_tokens:
-        #     cache_oppo = [(each.r, each.q) for each in opponent_tokens]
-        # if self_tokens:
-        #     cache_self = [(each.r, each.q) for each in self_tokens]
-
         # enumerate all possible moves for our token
         for move_r, move_q in possible:
             
@@ -232,67 +246,69 @@ class Player:
                 if len(row_utility) != 0:
                     util_matrix.append(row_utility)                     
 
-            # if opponent_tokens:
-            #     for i in range(len(cache_oppo)):
-            #         c_r, c_q = cache_oppo[i]
-            #         self.opponent_tokens[i].move(c_r, c_q)
-            # if self.self_tokens:
-            #     for i in range(len(cache_self)):
-            #         c_r, c_q = cache_self[i]
-            #         self.self_tokens[i].move(c_r, c_q)
-
         return util_matrix, my_valid_moves, opp_valid_moves
+
+    def token_eval(self, cur_token, enemy_token):
+        difference = 0
+        # if (enemy_token.r, enemy_token.q) in cur_token.get_adj_hex(cur_token.r, cur_token.q):
+        #     difference += 0.1
+        if isinstance(enemy_token, cur_token.enemy):
+            difference += self.target_eval(cur_token, enemy_token)
+        else:
+            difference += self.target_eval(cur_token, enemy_token)
+        # difference += (self.border_eval(cur_token) / 10)
+        return difference
 
     # Returns simple evaluation of player tokens minus opponent tokens
     def simple_eval(self, cur_token, self_tokens, opponent_tokens, enemy_token):
-        difference = 20
+        difference = 10
         if isinstance(enemy_token, cur_token.enemy):
             difference += self.target_eval(cur_token, enemy_token)
             difference += self.kill_eval(cur_token, enemy_token)
         else:
-            difference += self.avoid_eval(cur_token, enemy_token)
-            difference += self.death_eval(cur_token, enemy_token)
-        difference += self.ally_eval(cur_token, self_tokens)
-        difference += self.border_eval(cur_token)
+            difference -= self.avoid_eval(cur_token, enemy_token)
+            difference -= self.death_eval(cur_token, enemy_token)
+        difference -= self.ally_eval(cur_token, self_tokens)
+        difference -= self.border_eval(cur_token)
         return difference
 
     def target_eval(self, cur_token, enemy_token):
         w = 1
         distance = cur_token.hex_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
         if distance:
-            return w * (((12/distance) * (distance + 1)) / 12)
+            return w * (((10/distance) * (distance + 1)) / 10)
         return w
 
     def kill_eval(self, cur_token, enemy_token):
-        w = 20
+        w = 40
         distance = cur_token.euclidean_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
         if distance == 0:
             return w
         return 0
 
     def avoid_eval(self, cur_token, enemy_token):
-        w = -1
+        w = 10
         distance = cur_token.hex_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
         if distance:
-            return w * distance
+            return w * (((10/distance) * (distance + 1)) / 10)
         return w
     
     def death_eval(self, cur_token, enemy_token):
-        w = -20
+        w = 50
         distance = cur_token.euclidean_distance([cur_token.r, cur_token.q], [enemy_token.r, enemy_token.q])
         if distance == 0:
             return w
         return 0
 
     def ally_eval(self, cur_token, self_tokens):
-        w = -20
+        w = 50
         team_kill = [(token.r, token.q) for token in self_tokens if isinstance(token, cur_token.enemy) or isinstance(token, cur_token.avoid) or 
                                                                     isinstance(cur_token, token.avoid) or isinstance(cur_token, token.enemy)]
         return w if (cur_token.r, cur_token.q) in team_kill else 0
 
     def border_eval(self, cur_token):
-        w = -20
-        border = [(r, q) for (r, q) in cur_token.get_adj_hex(cur_token.r, cur_token.q) if self.board.check_bounds(r, q)] != 6
+        w = 50
+        border = len([(r, q) for (r, q) in cur_token.get_adj_hex(cur_token.r, cur_token.q) if self.board.check_bounds(r, q)]) != 6
         return w if border else 0
     
     def swing_eval(self, cur_token, self_tokens):
@@ -310,6 +326,8 @@ class Player:
     # wip: pruning, and maybe recognizing repeated states
     """
     def lookahead(self, token_considered, target, self_tokens, opponent_tokens, depth):
+        ori_r, ori_q = token_considered.r, token_considered.q
+        opp_r, opp_q = target.r, target.q
 
         # we stop recursing if we hit a limit, and returns the value of playing to this gamestate
         if depth == 2:
@@ -319,10 +337,15 @@ class Player:
 
         util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
         sol_best, val_best = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
-        
+        token_considered.move(ori_r, ori_q)
+
         # fix what our best move is
         sol_best = sol_best.tolist()
         (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
+        if (token_considered, best_r, best_q) in self.history and len(self.history) == 5:
+            my_moves.remove((best_r, best_q))
+            sol_best.remove(max(sol_best))
+            (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
         new_self = self.adjust_list(token_considered, self_tokens, best_r, best_q)
 
         max_value = 0
@@ -333,6 +356,7 @@ class Player:
             # adjust opp's list, and recurse
             new_opp = self.adjust_list(target, opponent_tokens, opp_r, opp_q)
             val, best_move = self.lookahead(token_considered, target, new_self, new_opp, depth + 1)
+            target.move(opp_r, opp_q)
 
             if val > max_value:
                 max_value = val
