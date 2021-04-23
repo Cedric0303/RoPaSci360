@@ -35,6 +35,7 @@ class Player:
         self.opponent_tokens = list()
         self.kills = 0
         self.deaths = 0
+        self.history = list()
 
     def action(self):
         """
