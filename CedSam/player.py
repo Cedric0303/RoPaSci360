@@ -1,6 +1,7 @@
 from random import choice, randrange
 import numpy as np
 from numpy.lib.function_base import diff
+from scipy.sparse.linalg.isolve.iterative import qmr
 from CedSam.board import Board
 from CedSam.side import Lower, Upper
 from CedSam.token import Rock, Paper, Scissors
@@ -166,8 +167,9 @@ class Player:
             next_r, next_q = player_action[2]
             for i in range(len(self.self_tokens)):
                 if (self.self_tokens[i].r == prev_r and self.self_tokens[i].q == prev_q):
-                    print("CHANGING SELF", (prev_r, prev_q), ( next_r, next_q))
+                    # print("CHANGING SELF", (prev_r, prev_q), ( next_r, next_q))
                     self.self_tokens[i].move(next_r, next_q)
+                    break
 
         if "THROW" == opponent_action[0]:
             # opponent throw
@@ -186,8 +188,10 @@ class Player:
             next_r, next_q = opponent_action[2]
             for i in range(len(self.opponent_tokens)):
                 if (self.opponent_tokens[i].r == prev_r and self.opponent_tokens[i].q == prev_q):
-                    print("CHANGING ENEMY", (prev_r, prev_q), (next_r, next_q))
+                    # print("CHANGING ENEMY", (prev_r, prev_q), (next_r, next_q))
                     self.opponent_tokens[i].move(next_r, next_q)
+                    break
+
         new_self, new_oppo = self.board.battle(self.self_tokens, self.opponent_tokens)
         self.kills += (len(self.opponent_tokens) - len(new_oppo))
         self.deaths += (len(self.self_tokens) - len(new_self))
@@ -213,39 +217,49 @@ class Player:
     def build_utility(self, token_considered, enemy_token, self_tokens, opponent_tokens):
             
         util_matrix = list()
-        possible = token_considered.get_adj_hex(token_considered.r, token_considered.q)
-        enemy_moves = enemy_token.get_adj_hex(enemy_token.r, enemy_token.q)
+        token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
+        enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
 
         opp_valid_moves = list()
         my_valid_moves = list()
 
+        possible = {(r,q): token_considered.euclidean_distance((r,q), (enemy_token.r, enemy_token.q)) for (r, q) in token_adj}
+        enemy_moves = {(r,q): token_considered.euclidean_distance((r,q), (token_considered.r, token_considered.q)) for (r, q) in enemy_adj}
+
+        if isinstance(enemy_token, token_considered.enemy):
+            possible = sorted(possible.items(), key=lambda possible:possible[1])
+            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1], reverse=True)
+        else:
+            possible = sorted(possible.items(), key=lambda possible:possible[1], reverse=True)
+            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1])
+        
+        possible = possible [:(len(possible) // 2) + 1]
+        possible = [coord for coord, val in possible]
+        enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
+        enemy_moves = [coord for coord, val in enemy_moves]
+        # print(len(possible), len(enemy_moves))
+
         # enumerate all possible moves for our token
         for move_r, move_q in possible:
-            
             shallow_self = self_tokens.copy()
-            if Board.check_bounds(move_r, move_q):
-                shallow_self = self.adjust_list(token_considered, shallow_self, move_r, move_q)
-                my_valid_moves.append((move_r, move_q))
-    
-                row_utility = list()
+            shallow_self = self.adjust_list(token_considered, shallow_self, move_r, move_q)
+            my_valid_moves.append((move_r, move_q))
 
+            row_utility = list()
 
-                for opp_r, opp_q in enemy_moves:
-                    
-                    shallow_opp = opponent_tokens.copy()
-                    if Board.check_bounds(opp_r, opp_q):
-                        shallow_opp = self.adjust_list(enemy_token, shallow_opp, opp_r, opp_q)
-                        opp_valid_moves.append((opp_r, opp_q))
+            for opp_r, opp_q in enemy_moves:
+                shallow_opp = opponent_tokens.copy()
+                shallow_opp = self.adjust_list(enemy_token, shallow_opp, opp_r, opp_q)
+                opp_valid_moves.append((opp_r, opp_q))
 
-                        # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
-                        alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
+                # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
+                alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
 
-                        row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, enemy_token))
-                
-                # don't add in an empty list if the opp move was invalid
-                if len(row_utility) != 0:
-                    util_matrix.append(row_utility)                     
-
+                row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, enemy_token))
+        
+            # don't add in an empty list if the opp move was invalid
+            if len(row_utility) != 0:
+                util_matrix.append(row_utility)                     
         return util_matrix, my_valid_moves, opp_valid_moves
 
     def token_eval(self, cur_token, enemy_token):

@@ -92,7 +92,7 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        if 'T' in player_action[0]:
+        if "THROW" == player_action[0]:
             # self throw
             token_name = player_action[1]
             (r, q) = player_action[2]
@@ -105,18 +105,19 @@ class Player:
             if self.side is Upper:
                 self.min_throw -= 1
             else:
-                self.max_throw  += 1
+                self.max_throw += 1
 
-        elif 'L' in player_action[0] or 'W' in player_action[0]:
+        elif "SLIDE" == player_action[0] or "SWING" == player_action[0]:
             # self swing/slide
             prev_r, prev_q = player_action[1]
             next_r, next_q = player_action[2]
             for i in range(len(self.self_tokens)):
-                if (self.self_tokens[i].r == prev_r \
-                and self.self_tokens[i].q == prev_q):
+                if (self.self_tokens[i].r == prev_r and self.self_tokens[i].q == prev_q):
+                    # print("CHANGING SELF", (prev_r, prev_q), ( next_r, next_q))
                     self.self_tokens[i].move(next_r, next_q)
+                    break
 
-        if 'T' in opponent_action[0]:
+        if "THROW" == opponent_action[0]:
             # opponent throw
             token_name2 = opponent_action[1]
             (r2, q2) = opponent_action[2]
@@ -127,16 +128,20 @@ class Player:
             elif 's' in token_name2:
                 self.opponent_tokens.append(Scissors(self.enemy_side, r2, q2))
 
-        elif 'L' in opponent_action[0] or 'W' in opponent_action[0]:
+        elif "SLIDE" == opponent_action[0] or "SWING" == opponent_action[0]:
             # opponent swing/slide
             prev_r, prev_q = opponent_action[1]
             next_r, next_q = opponent_action[2]
             for i in range(len(self.opponent_tokens)):
-                if (self.opponent_tokens[i].r == prev_r \
-                and self.opponent_tokens[i].q == prev_q):
+                if (self.opponent_tokens[i].r == prev_r and self.opponent_tokens[i].q == prev_q):
+                    # print("CHANGING ENEMY", (prev_r, prev_q), (next_r, next_q))
                     self.opponent_tokens[i].move(next_r, next_q)
-        self.self_tokens, self.opponent_tokens = \
-            self.board.battle(self.self_tokens, self.opponent_tokens)
+                    break
+
+        new_self, new_oppo = self.board.battle(self.self_tokens, self.opponent_tokens)
+        self.kills += (len(self.opponent_tokens) - len(new_oppo))
+        self.deaths += (len(self.self_tokens) - len(new_self))
+        self.self_tokens, self.opponent_tokens = new_self, new_oppo
         self.turn += 1
 
     # Adjusts a list of tokens to provide updated list
