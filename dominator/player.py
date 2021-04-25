@@ -352,7 +352,7 @@ class Player:
         util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
         # change is here! carry out iterative removal
         opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
-        util_matrix = self.remove_dom(util_matrix, opp_util, my_valid_moves, opp_valid_moves)
+        util_matrix = self.remove_dom(util_matrix, opp_util, my_moves, opp_moves)
         
         
         sol_best, val_best = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
