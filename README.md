@@ -5,5 +5,5 @@
 # TODO
 - [ ] prune lookahead even further
 - [ ] write more eval funcs
-- [/] fix lookahead
+- [ ] fix lookahead
 - [ ] think about what to do for throws
