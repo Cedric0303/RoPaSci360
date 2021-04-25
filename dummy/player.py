@@ -30,6 +30,9 @@ class Player:
                         Scissors(self.side, -1, -1)]
         self.self_tokens = list()
         self.opponent_tokens = list()
+        self.kills = 0
+        self.deaths = 0
+        self.history = list()
 
     def action(self):
         """

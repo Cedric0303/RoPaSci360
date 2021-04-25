@@ -352,10 +352,10 @@ class Player:
         util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
         # change is here! carry out iterative removal
         opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
-        util_matrix = self.remove_dom(util_matrix, opp_util, my_moves, opp_moves)
+        util_matrix = self.remove_dom(np.array(util_matrix), np.array(opp_util), my_moves, opp_moves)
         
         
-        sol_best, val_best = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
+        sol_best, val_best = solve_game(util_matrix, maximiser=True, rowplayer=True)
         token_considered.move(ori_r, ori_q)
 
         # fix what our best move is
@@ -385,7 +385,7 @@ class Player:
     """
     Carry out iterated removal of dominated strategies
     """
-    def remove_dom(my_util, opp_util, my_valid_moves, opp_valid_moves):
+    def remove_dom(self, my_util, opp_util, my_valid_moves, opp_valid_moves):
 
         # check if there's any dominated strategies in the matrices
         has_change = True
@@ -400,7 +400,7 @@ class Player:
     my_util: Utility matrix for token in consideration
     my_valid_moves: List of corresponding moves
     """
-    def check_for_dom(my_util, my_valid_moves, opp_util, opp_valid_moves):
+    def check_for_dom(self, my_util, my_valid_moves, opp_util, opp_valid_moves):
 
         # sort in descending order by sum, in order to get what most likely will be dominator
         sorted_util = sorted(my_util, key=sum, reverse=True)
@@ -414,16 +414,16 @@ class Player:
         for i in range(len(my_util)):
             
             row = my_util[i]
-            if dominates(dominator, row):
-                my_util.remove(row)
+            if self.dominates(dominator, row):
+                my_util = np.delete(my_util, i, axis = 0)
                 my_valid_moves.pop(i)
 
-                opp_util.pop(i)
+                opp_util = np.delete(opp_util, i, axis = 0)
                 opp_valid_moves.pop(i)
                 has_change = True
 
         return my_util, my_valid_moves, opp_util, opp_valid_moves, has_change
 
-    def dominates(row1, row2):
+    def dominates(self, row1, row2):
         dom = row1 > row2
         return dom.all()
