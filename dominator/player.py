@@ -221,13 +221,13 @@ class Player:
             
         # self_coord = [(token_considered.r, token_considered.q)]
         # oppo_coord = [(enemy_token.r, enemy_token.q)]
-        util_matrix = list()
-        token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
+        # util_matrix = list()
+        # token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
         # for token in self_tokens:
         #     if (token.r, token.q) in token_adj:
         #         token_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
         #         self_coord.append((token.r, token.q))
-        enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
+        #enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
         # for token in opponent_tokens:
         #     if (token.r, token.q) in enemy_adj:
         #         enemy_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
@@ -235,11 +235,14 @@ class Player:
         # token_adj = [coord for coord in token_adj if coord not in self_coord]
         # enemy_adj = [coord for coord in enemy_adj if coord not in oppo_coord]
 
-        opp_valid_moves = list()
-        my_valid_moves = list()
+        util_matrix = list()
+        token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
+        enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
 
-        possible = {(r,q): token_considered.euclidean_distance((r,q), (enemy_token.r, enemy_token.q)) for (r, q) in token_adj}
-        enemy_moves = {(r,q): token_considered.euclidean_distance((r,q), (token_considered.r, token_considered.q)) for (r, q) in enemy_adj}
+        my_valid_moves = list()
+        opp_valid_moves = list()
+        possible = token_adj
+        enemy_moves = enemy_adj
 
         if isinstance(enemy_token, token_considered.enemy):
             possible = sorted(possible.items(), key=lambda possible:possible[1])
@@ -392,10 +395,12 @@ class Player:
     def remove_dom(self, my_util, opp_util, my_valid_moves, opp_valid_moves):
 
         # check if there's any dominated strategies in the matrices
-        has_change = True
-        while has_change:
-            my_util, my_valid_moves, opp_util, opp_valid_moves, has_change = self.check_for_dom(my_util, my_valid_moves, opp_util, opp_valid_moves)
-            opp_util, opp_valid_moves, my_util, my_valid_moves, has_change = self.check_for_dom(opp_util, opp_valid_moves, my_util, my_valid_moves)
+        has_change1 = True
+        has_change2 = True
+
+        while has_change1 or has_change2:
+            my_util, my_valid_moves, opp_util, has_change1 = self.check_for_dom(my_util, my_valid_moves, opp_util)
+            opp_util, opp_valid_moves, my_util, has_change2 = self.check_for_dom(opp_util, opp_valid_moves, my_util)
 
         return my_util
 
@@ -404,29 +409,31 @@ class Player:
     my_util: Utility matrix for token in consideration
     my_valid_moves: List of corresponding moves
     """
-    def check_for_dom(self, my_util, my_valid_moves, opp_util, opp_valid_moves):
+    def check_for_dom(self, my_util, my_valid_moves, opp_util):
 
         # sort in descending order by sum, in order to get what most likely will be dominator
         sorted_util = sorted(my_util, key=sum, reverse=True)
         has_change = False
 
-        # transpose to get the same form
-        opp_util = np.transpose(opp_util)
-
         # check to see if any ROW dominates another
         dominator = sorted_util[0]
+        to_remove = list()
         for i in range(len(my_util)):
             
             row = my_util[i]
             if self.dominates(dominator, row):
-                my_util = np.delete(my_util, i, axis = 0)
-                my_valid_moves.pop(i)
-
-                opp_util = np.delete(opp_util, i, axis = 0)
-                opp_valid_moves.pop(i)
+                to_remove.append(i)
                 has_change = True
 
-        return my_util, my_valid_moves, opp_util, opp_valid_moves, has_change
+        # remove the dominated strategies
+        my_util = np.delete(my_util, to_remove, axis = 0)
+        opp_util = np.delete(opp_util, to_remove, axis = 1)
+        
+        # remove from move list
+        for j in sorted(to_remove, reverse=True):
+            del my_valid_moves[j]
+
+        return my_util, my_valid_moves, opp_util, has_change
 
     def dominates(self, row1, row2):
         dom = row1 > row2
