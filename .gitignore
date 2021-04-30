@@ -1,2 +1,5 @@
 *.txt
 *.xlsx
+.DS_Store
+__pycache__
+*.ini
