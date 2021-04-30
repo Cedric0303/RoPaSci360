@@ -1,5 +1,6 @@
 from random import choice, randrange
 import numpy as np
+import copy
 from numpy.lib.function_base import diff
 from scipy.sparse.linalg.isolve.iterative import qmr
 from dominator.board import Board
@@ -67,7 +68,7 @@ class Player:
                                 opponent = both.pop(0)
                                 val = self.target_eval(token, opponent)
                                 if val > best_val:
-                                    best_val = val;
+                                    best_val = val
                                 # print(token.name, best_val)
                         else:
                             continue
@@ -85,7 +86,7 @@ class Player:
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
-                    val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
+                    val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 1)
                     end = timer()
                     print("lookahead", end - start)
                     if val > best_val:
@@ -205,8 +206,9 @@ class Player:
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
-
+        
         token_list[token_list.index(token)].move(new_r, new_q)
+        
         return token_list
 
     """
@@ -218,67 +220,45 @@ class Player:
     e.g. [[1,2,4,5], [2,4,8,6]]
     """
     def build_utility(self, token_considered, enemy_token, self_tokens, opponent_tokens):
-            
-        # self_coord = [(token_considered.r, token_considered.q)]
-        # oppo_coord = [(enemy_token.r, enemy_token.q)]
-        # util_matrix = list()
-        # token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
-        # for token in self_tokens:
-        #     if (token.r, token.q) in token_adj:
-        #         token_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
-        #         self_coord.append((token.r, token.q))
-        #enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
-        # for token in opponent_tokens:
-        #     if (token.r, token.q) in enemy_adj:
-        #         enemy_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
-        #         self_coord.append((token.r, token.q))
-        # token_adj = [coord for coord in token_adj if coord not in self_coord]
-        # enemy_adj = [coord for coord in enemy_adj if coord not in oppo_coord]
 
         util_matrix = list()
-        token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
-        enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
-
-        my_valid_moves = list()
-        opp_valid_moves = list()
-        possible = token_adj
-        enemy_moves = enemy_adj
-
-        if isinstance(enemy_token, token_considered.enemy):
-            possible = sorted(possible.items(), key=lambda possible:possible[1])
-            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1], reverse=True)
-        else:
-            possible = sorted(possible.items(), key=lambda possible:possible[1], reverse=True)
-            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1])
         
-        possible = possible [:(len(possible) // 2) + 1]
-        possible = [coord for coord, val in possible]
-        enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
-        enemy_moves = [coord for coord, val in enemy_moves]
-        # print(len(possible), len(enemy_moves))
+        possible = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
+        enemy_moves = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
 
-        # enumerate all possible moves for our token
-        for move_r, move_q in possible:
+        # SAVE ORIGINAL
+        (ori_r, ori_q) = (token_considered.r, token_considered.q)
+
+        for (move_r, move_q) in possible:
             shallow_self = self_tokens.copy()
             shallow_self = self.adjust_list(token_considered, shallow_self, move_r, move_q)
-            my_valid_moves.append((move_r, move_q))
 
-            row_utility = list()
+            shallow_opp = opponent_tokens.copy()
+            row_utility = self.build_by_row(token_considered, enemy_token, enemy_moves, shallow_self, shallow_opp)
 
-            for opp_r, opp_q in enemy_moves:
-                shallow_opp = opponent_tokens.copy()
-                shallow_opp = self.adjust_list(enemy_token, shallow_opp, opp_r, opp_q)
-                opp_valid_moves.append((opp_r, opp_q))
+            # put it back to its original spot
+            shallow_self = self.adjust_list(token_considered, shallow_self, ori_r, ori_q)
 
-                # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
-                alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
-
-                row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, enemy_token))
-        
-            # don't add in an empty list if the opp move was invalid
             if len(row_utility) != 0:
-                util_matrix.append(row_utility)                     
-        return util_matrix, my_valid_moves, opp_valid_moves
+                util_matrix.append(row_utility)
+                          
+        return util_matrix, possible, enemy_moves
+    
+    def build_by_row(self, token_considered, enemy_token, enemy_moves, shallow_self, shallow_opp):
+        row_utility = list()
+        (ori_r, ori_q) = (enemy_token.r, enemy_token.q)
+
+        for (opp_r, opp_q) in enemy_moves:
+            shallow_opp = self.adjust_list(enemy_token, shallow_opp, opp_r, opp_q)
+        
+            # now we have the modified lists of tokens, i.e. a gamestate where two moves have been taken
+            alive_self, alive_opp = self.board.battle(shallow_self, shallow_opp)
+
+            row_utility.append(self.simple_eval(token_considered, alive_self, alive_opp, enemy_token))
+
+            shallow_opp = self.adjust_list(enemy_token, shallow_opp, ori_r, ori_q)
+        
+        return row_utility
 
     # Returns simple evaluation of player tokens minus opponent tokens
     def simple_eval(self, cur_token, self_tokens, opponent_tokens, enemy_token):
@@ -353,6 +333,8 @@ class Player:
         # we stop recursing if we hit a limit, and returns the value of playing to this gamestate
         if depth == 2:
             util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
+            opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
+            util_matrix = self.remove_dom(np.array(util_matrix), np.array(opp_util), my_moves, opp_moves)
             sol, val = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
             return val, my_moves
 
@@ -360,7 +342,6 @@ class Player:
         # change is here! carry out iterative removal
         opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
         util_matrix = self.remove_dom(np.array(util_matrix), np.array(opp_util), my_moves, opp_moves)
-        
         
         sol_best, val_best = solve_game(util_matrix, maximiser=True, rowplayer=True)
         token_considered.move(ori_r, ori_q)
@@ -401,7 +382,7 @@ class Player:
         while has_change1 or has_change2:
             my_util, my_valid_moves, opp_util, has_change1 = self.check_for_dom(my_util, my_valid_moves, opp_util)
             opp_util, opp_valid_moves, my_util, has_change2 = self.check_for_dom(opp_util, opp_valid_moves, my_util)
-
+        print("complete!")
         return my_util
 
     """
@@ -410,6 +391,9 @@ class Player:
     my_valid_moves: List of corresponding moves
     """
     def check_for_dom(self, my_util, my_valid_moves, opp_util):
+        
+        print("my util's shape: " + str(my_util.shape) + "len of moves: " + str(len(my_valid_moves)))
+        print("opp util's shape: " + str(opp_util.shape))
 
         # sort in descending order by sum, in order to get what most likely will be dominator
         sorted_util = sorted(my_util, key=sum, reverse=True)
