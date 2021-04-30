@@ -80,9 +80,15 @@ class Player:
                 ori_r, ori_q = move_token.r, move_token.q
                 (best_r, best_q) = False, False
                 best_val = -100
-                both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
+                targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
+                enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
+                if len(targets) > 2:
+                    targets = targets[:1]
+                if len(enemies) > 2:
+                    enemies = enemies[:1]
+                both = targets + enemies
                 while both:
-                    opponent = both.pop(0)
+                    opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
@@ -206,7 +212,6 @@ class Player:
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
-
         token_list[token_list.index(token)].move(new_r, new_q)
         return token_list
 
@@ -249,9 +254,11 @@ class Player:
             possible = sorted(possible.items(), key=lambda possible:possible[1], reverse=True)
             enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1])
         
-        possible = possible [:(len(possible) // 2) + 1]
+        if len(possible) > 2:
+            possible = possible [:(len(possible) // 2) + 1]
+        if len(enemy_moves) > 2:
+            enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
         possible = [coord for coord, val in possible]
-        enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
         enemy_moves = [coord for coord, val in enemy_moves]
         # print(len(possible), len(enemy_moves))
 
