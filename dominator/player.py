@@ -89,13 +89,14 @@ class Player:
                 #     enemies = enemies[:1]
                 # both = targets + enemies
                 while both:
-                    opponent, dist = both.pop(0)
+                    opponent = both.pop(0)
+                    # opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
                     val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
                     end = timer()
-                    print("lookahead", end - start)
+                    # print("lookahead", end - start)
                     if val > best_val:
                         best_val = val
                         (best_r, best_q) = move
