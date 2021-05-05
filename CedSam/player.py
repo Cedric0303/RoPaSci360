@@ -68,7 +68,7 @@ class Player:
                                 opponent = both.pop(0)
                                 val = self.target_eval(token, opponent)
                                 if val > best_val:
-                                    best_val = val;
+                                    best_val = val
                                 # print(token.name, best_val)
                         else:
                             continue
@@ -80,6 +80,7 @@ class Player:
                 ori_r, ori_q = move_token.r, move_token.q
                 (best_r, best_q) = False, False
                 best_val = -100
+                both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
                 targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
                 enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
                 if len(targets) > 2:
@@ -368,7 +369,7 @@ class Player:
         # fix what our best move is
         sol_best = sol_best.tolist()
         (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
-        if (token_considered, best_r, best_q) in self.history and len(self.history) == 5:
+        if (token_considered, best_r, best_q) in self.history and len(my_moves) > 1 and len(self.history) == 5:
             my_moves.remove((best_r, best_q))
             sol_best.remove(max(sol_best))
             (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]

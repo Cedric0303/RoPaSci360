@@ -81,12 +81,19 @@ class Player:
                 (best_r, best_q) = False, False
                 best_val = -100
                 both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
+                # targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
+                # enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
+                # if len(targets) > 2:
+                #     targets = targets[:1]
+                # if len(enemies) > 2:
+                #     enemies = enemies[:1]
+                # both = targets + enemies
                 while both:
-                    opponent = both.pop(0)
+                    opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
-                    val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 1)
+                    val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
                     end = timer()
                     print("lookahead", end - start)
                     if val > best_val:
@@ -206,9 +213,8 @@ class Player:
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
-        
         token_list[token_list.index(token)].move(new_r, new_q)
-        
+
         return token_list
 
     """
@@ -331,7 +337,7 @@ class Player:
         opp_r, opp_q = target.r, target.q
 
         # we stop recursing if we hit a limit, and returns the value of playing to this gamestate
-        if depth == 2:
+        if depth == 3:
             util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
             opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
             util_matrix = self.remove_dom(np.array(util_matrix), np.array(opp_util), my_moves, opp_moves)
@@ -349,7 +355,7 @@ class Player:
         # fix what our best move is
         sol_best = sol_best.tolist()
         (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
-        if (token_considered, best_r, best_q) in self.history and len(self.history) == 5:
+        if (token_considered, best_r, best_q) in self.history and len(my_moves) > 1 and len(self.history) >= 5:
             my_moves.remove((best_r, best_q))
             sol_best.remove(max(sol_best))
             (best_r, best_q) = my_moves[sol_best.index(max(sol_best))]
@@ -382,7 +388,7 @@ class Player:
         while has_change1 or has_change2:
             my_util, my_valid_moves, opp_util, has_change1 = self.check_for_dom(my_util, my_valid_moves, opp_util)
             opp_util, opp_valid_moves, my_util, has_change2 = self.check_for_dom(opp_util, opp_valid_moves, my_util)
-        print("complete!")
+        # print("complete!")
         return my_util
 
     """
@@ -392,8 +398,8 @@ class Player:
     """
     def check_for_dom(self, my_util, my_valid_moves, opp_util):
         
-        print("my util's shape: " + str(my_util.shape) + "len of moves: " + str(len(my_valid_moves)))
-        print("opp util's shape: " + str(opp_util.shape))
+        # print("my util's shape: " + str(my_util.shape) + "len of moves: " + str(len(my_valid_moves)))
+        # print("opp util's shape: " + str(opp_util.shape))
 
         # sort in descending order by sum, in order to get what most likely will be dominator
         sorted_util = sorted(my_util, key=sum, reverse=True)
