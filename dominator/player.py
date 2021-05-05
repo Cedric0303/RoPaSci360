@@ -1,6 +1,7 @@
 from random import choice, randrange
 import numpy as np
 import copy
+from numpy.lib.arraysetops import isin
 from numpy.lib.function_base import diff
 from scipy.sparse.linalg.isolve.iterative import qmr
 from dominator.board import Board
@@ -50,7 +51,7 @@ class Player:
         beatable = [type(opponent) for token in self.self_tokens for opponent in self.opponent_tokens if isinstance(opponent, token.enemy)]
         
         if self.self_tokens: 
-            if beatable:# and self.turn % 10:
+            if beatable and self.turn % 15:
                 token_best_move = dict()
 
                 # save current opponent coords
@@ -81,13 +82,6 @@ class Player:
                 (best_r, best_q) = False, False
                 best_val = -100
                 both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
-                # targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
-                # enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
-                # if len(targets) > 2:
-                #     targets = targets[:1]
-                # if len(enemies) > 2:
-                #     enemies = enemies[:1]
-                # both = targets + enemies
                 while both:
                     opponent = both.pop(0)
                     # opponent, dist = both.pop(0)
@@ -119,7 +113,7 @@ class Player:
                 else:
                     return ("SLIDE", (move_token.r, move_token.q), (best_r, best_q))
 
-            elif not self.throws:
+            elif not beatable:
                 token = choice(self.self_tokens) if len(self.self_tokens) > 1 else self.self_tokens[0]
                 (best_r, best_q) = choice([(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)])
                 if token.hex_distance([token.r, token.q], [best_r, best_q]) > 1:
@@ -130,21 +124,22 @@ class Player:
         tokens = list(map(type, self.self_tokens + self.opponent_tokens))
         ttypes_on_board = int(Paper in tokens) + int(Rock in tokens) + int(Scissors in tokens)
 
-        if self.throws and (not self.self_tokens or ttypes_on_board == 1 or not beatable  or not self.turn % 10):
+        if self.throws and (not self.self_tokens or ttypes_on_board == 1 or not beatable or not self.turn % 15):
+            current_hex = [(token.r, token.q) for token in self.self_tokens]
             # throw
             if self.opponent_tokens:
-                random_enemy = choice(self.opponent_tokens)
-                find_enemy = [each for each in self.throws if isinstance(each, random_enemy.avoid)]
-                if find_enemy:
-                    token = choice(find_enemy)
-                    self.throws.remove(token)
+                for opponent in self.opponent_tokens:
+                    token = [throw for throw in self.throws if isinstance(throw, opponent.avoid)]
+                    if token and self.min_throw <= opponent.r <= self.max_throw:
+                        chosen = token.pop(0)
+                        return ("THROW", chosen.name.lower(), (opponent.r, opponent.q))
                 else:
                     token = self.throws.pop(self.throws.index(choice(self.throws)))
             else:
                 token = self.throws.pop(self.throws.index(choice(self.throws)))
             r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
             q = randrange(-4, 5)
-            while not Board.check_bounds(r, q):
+            while not Board.check_bounds(r, q) and (r, q) not in current_hex:
                 r = randrange(min(self.min_throw, self.max_throw), max(self.min_throw, self.max_throw))
                 q = randrange(-4, 5)
             return ("THROW", token.name.lower(), (r, q))
@@ -338,7 +333,7 @@ class Player:
         opp_r, opp_q = target.r, target.q
 
         # we stop recursing if we hit a limit, and returns the value of playing to this gamestate
-        if depth == 3:
+        if depth == 2:
             util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
             opp_util, _a, _b = self.build_utility(target, token_considered, opponent_tokens, self_tokens)
             util_matrix = self.remove_dom(np.array(util_matrix), np.array(opp_util), my_moves, opp_moves)
