@@ -81,15 +81,16 @@ class Player:
                 (best_r, best_q) = False, False
                 best_val = -100
                 both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
-                targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
-                enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
-                if len(targets) > 2:
-                    targets = targets[:1]
-                if len(enemies) > 2:
-                    enemies = enemies[:1]
-                both = targets + enemies
+                # targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
+                # enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
+                # if len(targets) > 2:
+                #     targets = targets[:1]
+                # if len(enemies) > 2:
+                #     enemies = enemies[:1]
+                # both = targets + enemies
                 while both:
-                    opponent, dist = both.pop(0)
+                    opponent = both.pop(0)
+                    # opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
@@ -226,41 +227,44 @@ class Player:
     """
     def build_utility(self, token_considered, enemy_token, self_tokens, opponent_tokens):
         
-        self_coord = [(token_considered.r, token_considered.q)]
-        oppo_coord = [(enemy_token.r, enemy_token.q)]
+        # self_coord = [(token_considered.r, token_considered.q)]
+        # oppo_coord = [(enemy_token.r, enemy_token.q)]
         util_matrix = list()
         token_adj = [(r, q) for (r, q) in token_considered.get_adj_hex(token_considered.r, token_considered.q) if Board.check_bounds(r, q)]
-        for token in self_tokens:
-            if (token.r, token.q) in token_adj:
-                token_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
-                self_coord.append((token.r, token.q))
+        # for token in self_tokens:
+        #     if (token.r, token.q) in token_adj:
+        #         token_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
+        #         self_coord.append((token.r, token.q))
         enemy_adj = [(r, q) for (r, q) in enemy_token.get_adj_hex(enemy_token.r, enemy_token.q) if Board.check_bounds(r, q)]
-        for token in opponent_tokens:
-            if (token.r, token.q) in enemy_adj:
-                enemy_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
-                self_coord.append((token.r, token.q))
-        token_adj = [coord for coord in token_adj if coord not in self_coord]
-        enemy_adj = [coord for coord in enemy_adj if coord not in oppo_coord]
+        # for token in opponent_tokens:
+        #     if (token.r, token.q) in enemy_adj:
+        #         enemy_adj += [(r, q) for (r, q) in token.get_adj_hex(token.r, token.q) if Board.check_bounds(r, q)]
+        #         self_coord.append((token.r, token.q))
+        # token_adj = [coord for coord in token_adj if coord not in self_coord]
+        # enemy_adj = [coord for coord in enemy_adj if coord not in oppo_coord]
 
         opp_valid_moves = list()
         my_valid_moves = list()
 
-        possible = {(r,q): token_considered.euclidean_distance((r,q), (enemy_token.r, enemy_token.q)) for (r, q) in token_adj}
-        enemy_moves = {(r,q): token_considered.euclidean_distance((r,q), (token_considered.r, token_considered.q)) for (r, q) in enemy_adj}
+        possible = token_adj
+        enemy_moves = enemy_adj
 
-        if isinstance(enemy_token, token_considered.enemy):
-            possible = sorted(possible.items(), key=lambda possible:possible[1])
-            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1], reverse=True)
-        else:
-            possible = sorted(possible.items(), key=lambda possible:possible[1], reverse=True)
-            enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1])
+        # possible = {(r,q): token_considered.euclidean_distance((r,q), (enemy_token.r, enemy_token.q)) for (r, q) in token_adj}
+        # enemy_moves = {(r,q): token_considered.euclidean_distance((r,q), (token_considered.r, token_considered.q)) for (r, q) in enemy_adj}
+
+        # if isinstance(enemy_token, token_considered.enemy):
+        #     possible = sorted(possible.items(), key=lambda possible:possible[1])
+        #     enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1], reverse=True)
+        # else:
+        #     possible = sorted(possible.items(), key=lambda possible:possible[1], reverse=True)
+        #     enemy_moves = sorted(enemy_moves.items(), key=lambda enemy_moves:enemy_moves[1])
         
-        if len(possible) > 2:
-            possible = possible [:(len(possible) // 2) + 1]
-        if len(enemy_moves) > 2:
-            enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
-        possible = [coord for coord, val in possible]
-        enemy_moves = [coord for coord, val in enemy_moves]
+        # if len(possible) > 2:
+        #     possible = possible [:(len(possible) // 2) + 1]
+        # if len(enemy_moves) > 2:
+        #     enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
+        # possible = [coord for coord, val in possible]
+        # enemy_moves = [coord for coord, val in enemy_moves]
         # print(len(possible), len(enemy_moves))
 
         # enumerate all possible moves for our token
