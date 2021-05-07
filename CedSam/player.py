@@ -80,17 +80,17 @@ class Player:
                 ori_r, ori_q = move_token.r, move_token.q
                 (best_r, best_q) = False, False
                 best_val = -100
-                both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
-                # targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
-                # enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
-                # if len(targets) > 2:
-                #     targets = targets[:1]
-                # if len(enemies) > 2:
-                #     enemies = enemies[:1]
-                # both = targets + enemies
+                # both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
+                targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
+                enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
+                if len(targets) > 2:
+                    targets = targets[:1]
+                if len(enemies) > 2:
+                    enemies = enemies[:1]
+                both = targets + enemies
                 while both:
-                    opponent = both.pop(0)
-                    # opponent, dist = both.pop(0)
+                    # opponent = both.pop(0)
+                    opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
