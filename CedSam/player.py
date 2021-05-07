@@ -96,7 +96,7 @@ class Player:
                     start = timer()
                     val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
                     end = timer()
-                    print("lookahead", end - start)
+                    # print("lookahead", end - start)
                     if val > best_val:
                         best_val = val
                         (best_r, best_q) = move
@@ -209,8 +209,8 @@ class Player:
         self.deaths += (len(self.self_tokens) - len(new_self))
         self.self_tokens, self.opponent_tokens = new_self, new_oppo
         self.turn += 1
-        print("KILLED:", self.kills)
-        print("DIED  :", self.deaths)
+        # print("KILLED:", self.kills)
+        # print("DIED  :", self.deaths)
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
@@ -265,7 +265,7 @@ class Player:
             enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
         possible = [coord for coord, val in possible]
         enemy_moves = [coord for coord, val in enemy_moves]
-        print(len(possible), len(enemy_moves))
+        # print(len(possible), len(enemy_moves))
 
         # enumerate all possible moves for our token
         for move_r, move_q in possible:
