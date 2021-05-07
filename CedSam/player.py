@@ -361,7 +361,7 @@ class Player:
         opp_r, opp_q = target.r, target.q
 
         # we stop recursing if we hit a limit, and returns the value of playing to this gamestate
-        if depth == 2:
+        if depth == 3:
             util_matrix, my_moves, opp_moves = self.build_utility(token_considered, target, self_tokens, opponent_tokens)
             sol, val = solve_game(np.array(util_matrix), maximiser=True, rowplayer=True)
             return val, my_moves
