@@ -1,10 +1,9 @@
 from random import choice, randrange
 import numpy as np
-from dominator.board import Board
-from dominator.side import Lower, Upper
-from dominator.token import Rock, Paper, Scissors
-from dominator.gametheory2 import solve_game
-# from timeit import default_timer as timer
+from CedSam.board import Board
+from CedSam.side import Lower, Upper
+from CedSam.token import Rock, Paper, Scissors
+from CedSam.gametheory2 import solve_game
 
 class Player:
     def __init__(self, side):
@@ -124,7 +123,7 @@ class Player:
                 if len(self.self_tokens) > 1:
                     token = choice(self.self_tokens)
                 else :
-                    self.self_tokens[0]
+                    token = self.self_tokens[0]
                 (best_r, best_q) = choice([(r, q) for (r, q) in 
                                             token.get_adj_hex(token.r, token.q) 
                                             if Board.check_bounds(r, q)])

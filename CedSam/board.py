@@ -1,4 +1,4 @@
-from dominator.token import Paper, Rock, Scissors
+from CedSam.token import Paper, Rock, Scissors
 
 class Board():
 

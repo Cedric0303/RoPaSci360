@@ -1,4 +1,4 @@
-from dominator.side import Upper
+from CedSam.side import Upper
 from math import sqrt
 
 class Token():

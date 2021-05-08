@@ -1,1 +1,1 @@
-from dominator.player import Player
+from CedSam.player import Player
