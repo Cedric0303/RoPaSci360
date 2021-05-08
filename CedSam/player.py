@@ -69,7 +69,6 @@ class Player:
                                 val = self.target_eval(token, opponent)
                                 if val > best_val:
                                     best_val = val
-                                # print(token.name, best_val)
                         else:
                             continue
                         token_best_move[token] = best_val
@@ -80,7 +79,6 @@ class Player:
                 ori_r, ori_q = move_token.r, move_token.q
                 (best_r, best_q) = False, False
                 best_val = -100
-                # both = [target for target in self.opponent_tokens if isinstance(target, move_token.enemy)] + [enemy for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)]
                 targets = sorted([(target, move_token.euclidean_distance([move_token.r, move_token.q], [target.r, target.q])) for target in self.opponent_tokens if isinstance(target, move_token.enemy)], key=lambda targets:targets[1])
                 enemies = sorted([(enemy, move_token.euclidean_distance([move_token.r, move_token.q], [enemy.r, enemy.q])) for enemy in self.opponent_tokens if isinstance(enemy, move_token.avoid)], key=lambda enemies:enemies[1])
                 if len(targets) > 2:
@@ -89,14 +87,12 @@ class Player:
                     enemies = enemies[:1]
                 both = targets + enemies
                 while both:
-                    # opponent = both.pop(0)
                     opponent, dist = both.pop(0)
                     self_tokens = self.self_tokens.copy()
                     self_oppo = self.opponent_tokens.copy()
                     start = timer()
                     val, move = self.lookahead(move_token, opponent, self_tokens, self_oppo, depth = 0)
                     end = timer()
-                    # print("lookahead", end - start)
                     if val > best_val:
                         best_val = val
                         (best_r, best_q) = move
@@ -179,7 +175,6 @@ class Player:
             next_r, next_q = player_action[2]
             for i in range(len(self.self_tokens)):
                 if (self.self_tokens[i].r == prev_r and self.self_tokens[i].q == prev_q):
-                    # print("CHANGING SELF", (prev_r, prev_q), ( next_r, next_q))
                     self.self_tokens[i].move(next_r, next_q)
                     break
 
@@ -200,7 +195,6 @@ class Player:
             next_r, next_q = opponent_action[2]
             for i in range(len(self.opponent_tokens)):
                 if (self.opponent_tokens[i].r == prev_r and self.opponent_tokens[i].q == prev_q):
-                    # print("CHANGING ENEMY", (prev_r, prev_q), (next_r, next_q))
                     self.opponent_tokens[i].move(next_r, next_q)
                     break
 
@@ -209,8 +203,6 @@ class Player:
         self.deaths += (len(self.self_tokens) - len(new_self))
         self.self_tokens, self.opponent_tokens = new_self, new_oppo
         self.turn += 1
-        # print("KILLED:", self.kills)
-        # print("DIED  :", self.deaths)
 
     # Adjusts a list of tokens to provide updated list
     def adjust_list(self, token, token_list, new_r, new_q):
@@ -265,7 +257,6 @@ class Player:
             enemy_moves = enemy_moves[:(len(enemy_moves) // 2) + 1]
         possible = [coord for coord, val in possible]
         enemy_moves = [coord for coord, val in enemy_moves]
-        # print(len(possible), len(enemy_moves))
 
         # enumerate all possible moves for our token
         for move_r, move_q in possible:
