@@ -1,4 +1,4 @@
-from dominator.side import Upper
+from CedSam.side import Upper
 from math import sqrt
 
 class Token():
@@ -19,11 +19,15 @@ class Token():
         return [(r, q-1), (r-1, q), (r+1, q), 
                 (r, q+1), (r-1, q+1), (r+1, q-1)]
 
+    # hex distance between 2 chords based on manhattan distance
+    # modified code obtained from https://www.redblobgames.com/grids/hexagons/#distances
     def hex_distance(self, a, b):
         a_r, a_q = a
         b_r, b_q = b
         return (abs(a_q - b_q) + abs(a_q + a_r - b_q - b_r) + abs(a_r - b_r)) / 2
 
+    # euclidean distance between 2 coords
+    # modified code obtained from https://www.redblobgames.com/grids/hexagons/#distances
     def euclidean_distance(self, a, b):
         a_r, a_q = a
         b_r, b_q = b

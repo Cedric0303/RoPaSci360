@@ -1,4 +1,4 @@
-from CedSam.token import Paper, Rock, Scissors
+from dominator.token import Paper, Rock, Scissors
 
 class Board():
 
@@ -9,9 +9,6 @@ class Board():
     @staticmethod
     def check_bounds(x, y):
         return x in Board.size and y in Board.size and ((-x) - y) in Board.size
-
-    def check_borders(x, y):
-        pass
 
     # generate token classes of players 
     # with their coordinates and block tokens
